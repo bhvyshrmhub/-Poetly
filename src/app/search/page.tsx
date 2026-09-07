@@ -7,6 +7,7 @@ import PoemCard from "@/components/PoemCard";
 import WriterCard from "@/components/WriterCard";
 import CollectionCard from "@/components/CollectionCard";
 import Navbar from "@/components/Navbar";
+import MobileNav from "@/components/MobileNav";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -37,39 +38,39 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-12 md:py-16">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="font-editorial text-3xl md:text-4xl text-foreground mb-6">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+        <div className="mb-6 animate-fade-in">
+          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-4">
             Search
           </h1>
 
           {/* Search input */}
-          <div className="relative mb-8">
+          <div className="relative mb-6">
             <SearchIcon
-              size={18}
+              size={16}
               strokeWidth={1.5}
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-text-tertiary"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary"
             />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search poems, writers, collections..."
-              className="w-full bg-transparent border-b border-border focus:border-accent outline-none pl-7 py-3 text-sm text-foreground placeholder:text-text-tertiary"
+              className="w-full bg-surface border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none pl-10 pr-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors"
               autoFocus
             />
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-6 border-b border-border-light mb-8">
+          <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
             {(["poems", "writers", "collections", "tags"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm capitalize transition-colors border-b-2 -mb-px ${
+                className={`flex-1 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 capitalize ${
                   activeTab === tab
-                    ? "text-foreground border-foreground font-medium"
-                    : "text-text-tertiary border-transparent hover:text-text-secondary"
+                    ? "bg-surface text-text-primary shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {tab}
@@ -82,7 +83,7 @@ export default function SearchPage() {
             {activeTab === "poems" && (
               <div>
                 {query === "" ? (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     Start typing to search poems...
                   </p>
                 ) : filteredPoems.length > 0 ? (
@@ -90,7 +91,7 @@ export default function SearchPage() {
                     <PoemCard key={poem.id} poem={poem} />
                   ))
                 ) : (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     No poems found for &ldquo;{query}&rdquo;
                   </p>
                 )}
@@ -98,9 +99,9 @@ export default function SearchPage() {
             )}
 
             {activeTab === "writers" && (
-              <div className="space-y-4">
+              <div className="space-y-1">
                 {query === "" ? (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     Start typing to search writers...
                   </p>
                 ) : filteredWriters.length > 0 ? (
@@ -108,7 +109,7 @@ export default function SearchPage() {
                     <WriterCard key={writer.id} writer={writer} />
                   ))
                 ) : (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     No writers found for &ldquo;{query}&rdquo;
                   </p>
                 )}
@@ -116,9 +117,9 @@ export default function SearchPage() {
             )}
 
             {activeTab === "collections" && (
-              <div className="space-y-4">
+              <div>
                 {query === "" ? (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     Start typing to search collections...
                   </p>
                 ) : filteredCollections.length > 0 ? (
@@ -126,7 +127,7 @@ export default function SearchPage() {
                     <CollectionCard key={collection.id} collection={collection} />
                   ))
                 ) : (
-                  <p className="text-sm text-text-tertiary py-8 text-center">
+                  <p className="text-sm text-text-tertiary py-12 text-center">
                     No collections found for &ldquo;{query}&rdquo;
                   </p>
                 )}
@@ -136,20 +137,20 @@ export default function SearchPage() {
             {activeTab === "tags" && (
               <div className="flex flex-wrap gap-2">
                 {query === "" ? (
-                  <p className="text-sm text-text-tertiary py-8 text-center w-full">
+                  <p className="text-sm text-text-tertiary py-12 text-center w-full">
                     Start typing to search tags...
                   </p>
                 ) : filteredTags.length > 0 ? (
                   filteredTags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-3 py-1.5 text-xs text-text-secondary border border-border rounded-full hover:border-foreground hover:text-foreground transition-colors cursor-pointer"
+                      className="px-3 py-1.5 text-xs text-text-secondary bg-surface border border-border-subtle rounded-full hover:border-brand/40 hover:text-brand transition-colors cursor-pointer"
                     >
                       {tag}
                     </span>
                   ))
                 ) : (
-                  <p className="text-sm text-text-tertiary py-8 text-center w-full">
+                  <p className="text-sm text-text-tertiary py-12 text-center w-full">
                     No tags found for &ldquo;{query}&rdquo;
                   </p>
                 )}
@@ -158,6 +159,7 @@ export default function SearchPage() {
           </div>
         </div>
       </main>
+      <MobileNav />
     </div>
   );
 }

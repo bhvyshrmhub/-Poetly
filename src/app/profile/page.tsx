@@ -8,60 +8,67 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function ProfilePage() {
-  const writer = writers[0]; // Default to Maya
+  const writer = writers[0];
   const [activeTab, setActiveTab] = useState<"poems" | "collections" | "about">("poems");
   const writerPoems = poems.filter((p) => p.author.id === writer.id);
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-12 md:py-16 pb-24 md:pb-16">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         {/* Profile header */}
-        <div className="flex items-start justify-between mb-8 animate-fade-in">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-accent-muted flex items-center justify-center">
-              <span className="text-accent font-serif text-xl font-semibold">
+        <div className="animate-fade-in mb-8">
+          <div className="flex items-start gap-4 mb-5">
+            {/* Square avatar */}
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-[var(--radius-md)] bg-brand-subtle flex items-center justify-center flex-shrink-0">
+              <span className="text-brand font-display text-2xl font-medium">
                 {writer.name.split(" ").map((n) => n[0]).join("")}
               </span>
             </div>
-            <div>
-              <h1 className="font-serif text-xl font-medium text-foreground">
-                {writer.handle}
-              </h1>
-              <p className="text-sm text-text-secondary italic mt-0.5">
-                &ldquo;{writer.bio}&rdquo;
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="font-poem text-xl font-medium text-text-primary">
+                    {writer.name}
+                  </h1>
+                  <p className="text-sm text-text-tertiary">{writer.handle}</p>
+                </div>
+                <FollowButton />
+              </div>
             </div>
           </div>
-          <FollowButton />
-        </div>
 
-        {/* Stats */}
-        <div className="flex gap-8 mb-8 text-sm">
-          <div>
-            <span className="font-medium text-foreground">{writer.poemCount}</span>{" "}
-            <span className="text-text-tertiary">Poems</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">{writer.followers}</span>{" "}
-            <span className="text-text-tertiary">Followers</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">{writer.following}</span>{" "}
-            <span className="text-text-tertiary">Following</span>
+          <p className="text-sm text-text-secondary italic mb-4 max-w-md">
+            &ldquo;{writer.bio}&rdquo;
+          </p>
+
+          {/* Stats */}
+          <div className="flex gap-6 text-sm">
+            <div>
+              <span className="font-medium text-text-primary">{writer.poemCount}</span>{" "}
+              <span className="text-text-tertiary">Poems</span>
+            </div>
+            <div>
+              <span className="font-medium text-text-primary">{writer.followers}</span>{" "}
+              <span className="text-text-tertiary">Followers</span>
+            </div>
+            <div>
+              <span className="font-medium text-text-primary">{writer.following}</span>{" "}
+              <span className="text-text-tertiary">Following</span>
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-border-light mb-8">
+        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
           {(["poems", "collections", "about"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3 text-sm capitalize transition-colors border-b-2 -mb-px ${
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 capitalize ${
                 activeTab === tab
-                  ? "text-foreground border-foreground font-medium"
-                  : "text-text-tertiary border-transparent hover:text-text-secondary"
+                  ? "bg-surface text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               {tab}
@@ -77,7 +84,7 @@ export default function ProfilePage() {
                 <PoemCard key={poem.id} poem={poem} />
               ))
             ) : (
-              <p className="text-sm text-text-tertiary py-8 text-center">
+              <p className="text-sm text-text-tertiary py-12 text-center">
                 No poems yet.
               </p>
             )}
@@ -85,8 +92,8 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "collections" && (
-          <div className="space-y-4">
-            <p className="text-sm text-text-tertiary py-8 text-center">
+          <div>
+            <p className="text-sm text-text-tertiary py-12 text-center">
               Collections coming soon.
             </p>
           </div>
@@ -94,12 +101,12 @@ export default function ProfilePage() {
 
         {activeTab === "about" && (
           <div className="py-4">
-            <p className="font-serif text-lg text-foreground italic mb-4">
+            <p className="font-poem text-lg text-text-primary italic mb-4">
               &ldquo;{writer.bio}&rdquo;
             </p>
-            <p className="text-sm text-text-secondary leading-relaxed">
+            <p className="text-sm text-text-secondary leading-relaxed max-w-md">
               {writer.name} is a poet and writer. They have published {writer.poemCount} poems
-              on this platform and have {writer.followers} followers.
+              and have {writer.followers} followers on Poetly.
             </p>
           </div>
         )}

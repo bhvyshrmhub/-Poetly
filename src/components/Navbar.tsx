@@ -2,57 +2,86 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, User } from "lucide-react";
+import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
 
-  const navLinks = [
-    { href: "/home", label: "Home" },
-    { href: "/explore", label: "Explore" },
-    { href: "/write", label: "Write" },
-    { href: "/library", label: "Library" },
+  const leftLinks = [
+    { href: "/home", label: "Home", icon: Home },
+    { href: "/trending", label: "Trending", icon: TrendingUp },
+    { href: "/search", label: "Search", icon: Search },
+  ];
+
+  const rightLinks = [
+    { href: "/notifications", label: "Notifications", icon: Bell },
+    { href: "/library", label: "Library", icon: BookMarked },
+    { href: "/profile", label: "Profile", icon: User },
   ];
 
   return (
-    <nav className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-      <Link href="/" className="flex items-center gap-2">
-        <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-          Poetry Platform
+    <nav className="hidden md:flex items-center justify-between px-6 h-[var(--nav-height)] border-b border-border-subtle bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2.5 mr-8">
+        <div className="w-7 h-7 rounded-[var(--radius-sm)] gradient-brand flex items-center justify-center">
+          <span className="text-white text-xs font-semibold">P</span>
+        </div>
+        <span className="font-display text-lg text-text-primary tracking-tight hidden lg:block">
+          Poetly
         </span>
       </Link>
 
-      <div className="flex items-center gap-8">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`text-sm tracking-wide transition-colors hover:text-foreground ${
-              pathname === link.href
-                ? "text-foreground font-medium"
-                : "text-text-secondary"
-            }`}
-          >
-            {link.label}
-          </Link>
-        ))}
+      {/* Left nav */}
+      <div className="flex items-center gap-1">
+        {leftLinks.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-sm transition-all duration-150 ${
+                isActive
+                  ? "bg-brand-subtle text-brand font-medium"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+              }`}
+            >
+              <Icon size={17} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="hidden lg:inline">{link.label}</span>
+            </Link>
+          );
+        })}
       </div>
 
-      <div className="flex items-center gap-4">
-        <Link
-          href="/search"
-          className="text-text-secondary hover:text-foreground transition-colors"
-          aria-label="Search"
-        >
-          <Search size={18} strokeWidth={1.5} />
-        </Link>
-        <Link
-          href="/profile"
-          className="text-text-secondary hover:text-foreground transition-colors"
-          aria-label="Profile"
-        >
-          <User size={18} strokeWidth={1.5} />
-        </Link>
+      {/* Center — Create */}
+      <Link
+        href="/write"
+        className="flex items-center gap-2 px-4 py-1.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
+      >
+        <PenLine size={15} strokeWidth={2} />
+        <span className="hidden lg:inline">Create</span>
+      </Link>
+
+      {/* Right nav */}
+      <div className="flex items-center gap-1">
+        {rightLinks.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-sm transition-all duration-150 ${
+                isActive
+                  ? "bg-brand-subtle text-brand font-medium"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+              }`}
+            >
+              <Icon size={17} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="hidden lg:inline">{link.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

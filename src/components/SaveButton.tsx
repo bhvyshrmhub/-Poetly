@@ -25,9 +25,9 @@ export default function SaveButton({
   return (
     <button
       onClick={handleToggle}
-      className={`flex items-center gap-1.5 transition-colors ${
+      className={`flex items-center gap-1.5 transition-all duration-150 ${
         size === "sm" ? "text-xs" : "text-sm"
-      } ${saved ? "text-accent" : "text-text-tertiary hover:text-text-secondary"}`}
+      } ${saved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}
       aria-label={saved ? "Unsave" : "Save"}
     >
       <Bookmark

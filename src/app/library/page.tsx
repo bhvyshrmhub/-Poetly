@@ -17,34 +17,33 @@ export default function LibraryPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-12 md:py-16 pb-24 md:pb-16">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="font-editorial text-3xl md:text-4xl text-foreground mb-2">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+        <div className="mb-6 animate-fade-in">
+          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">
             Library
           </h1>
-          <p className="text-text-secondary">
+          <p className="text-sm text-text-secondary">
             Your saved poems and collections.
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-border-light mb-8">
+        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
           {(["saved", "collections", "writers"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3 text-sm capitalize transition-colors border-b-2 -mb-px ${
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 capitalize ${
                 activeTab === tab
-                  ? "text-foreground border-foreground font-medium"
-                  : "text-text-tertiary border-transparent hover:text-text-secondary"
+                  ? "bg-surface text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
-              {tab === "saved" ? "Saved Poems" : tab}
+              {tab === "saved" ? "Saved" : tab}
             </button>
           ))}
         </div>
 
-        {/* Tab content */}
         {activeTab === "saved" && (
           <div>
             {savedPoems.length > 0 ? (
@@ -56,10 +55,7 @@ export default function LibraryPage() {
                 title="Nothing saved yet."
                 description="The next poem that stays with you can live here."
                 action={
-                  <Link
-                    href="/explore"
-                    className="text-sm font-medium text-accent hover:text-accent-light transition-colors"
-                  >
+                  <Link href="/trending" className="text-sm font-medium text-brand hover:text-brand-hover transition-colors">
                     Explore poems →
                   </Link>
                 }
@@ -69,7 +65,7 @@ export default function LibraryPage() {
         )}
 
         {activeTab === "collections" && (
-          <div className="space-y-4">
+          <div>
             {collections.map((collection) => (
               <CollectionCard key={collection.id} collection={collection} />
             ))}
@@ -77,7 +73,7 @@ export default function LibraryPage() {
         )}
 
         {activeTab === "writers" && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             {writers.slice(0, 4).map((writer) => (
               <WriterCard key={writer.id} writer={writer} />
             ))}

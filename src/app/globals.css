@@ -1,208 +1,413 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600&family=Special+Elite&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap');
 
 @import "tailwindcss";
 
+/* ============================================================
+   POETLY DESIGN SYSTEM — v2
+   Brand: Poetly
+   Tagline: Write what you cannot say.
+   Identity: Soft blue + pink · iOS smoothness · Material surfaces
+   ============================================================ */
+
 :root {
-  --background: #FAF8F5;
-  --foreground: #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #9B9B9B;
-  --accent: #7A3B4E;
-  --accent-light: #A65D6E;
-  --accent-muted: rgba(122, 59, 78, 0.08);
-  --border: #E8E4DF;
-  --border-light: #F0ECE8;
-  --surface: #FFFFFF;
-  --surface-hover: #F8F6F3;
-  --serif: 'Cormorant Garamond', Georgia, serif;
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --typewriter: 'Special Elite', monospace;
+  /* ── Background ── */
+  --background:              #F7F8FC;
+  --background-subtle:       #F0F2F8;
+  --background-elevated:     #FFFFFF;
+
+  /* ── Surface ── */
+  --surface:                 #FFFFFF;
+  --surface-hover:           #F4F6FB;
+  --surface-active:          #ECEEF6;
+  --surface-elevated:        #FFFFFF;
+  --surface-secondary:       #F7F8FC;
+
+  /* ── Text ── */
+  --text-primary:            #1A1D2B;
+  --text-secondary:          #5C6178;
+  --text-tertiary:           #9096AD;
+  --text-disabled:           #C2C6D6;
+  --text-on-accent:          #FFFFFF;
+
+  /* ── Brand ── */
+  --brand-primary:           #6C8CFF;
+  --brand-primary-hover:     #5A7AEE;
+  --brand-primary-subtle:    rgba(108, 140, 255, 0.10);
+  --brand-primary-muted:     rgba(108, 140, 255, 0.06);
+  --brand-secondary:         #E89AC7;
+  --brand-secondary-hover:   #DA88B8;
+  --brand-secondary-subtle:  rgba(232, 154, 199, 0.12);
+  --brand-secondary-muted:   rgba(232, 154, 199, 0.06);
+
+  /* ── Borders ── */
+  --border-subtle:           #ECEDF2;
+  --border-default:          #DEE0EA;
+  --border-strong:           #C8CBD8;
+
+  /* ── Semantic ── */
+  --success:                 #5CB88A;
+  --success-subtle:          rgba(92, 184, 138, 0.10);
+  --warning:                 #E5A84B;
+  --warning-subtle:          rgba(229, 168, 75, 0.10);
+  --error:                   #E86C6C;
+  --error-subtle:            rgba(232, 108, 108, 0.10);
+  --info:                    #6C8CFF;
+  --info-subtle:             rgba(108, 140, 255, 0.10);
+
+  /* ── Poetry Accents ── */
+  --accent-love:             #E89AC7;
+  --accent-midnight:         #4A4F7C;
+  --accent-nature:           #5CB88A;
+  --accent-rain:             #6CA4D9;
+  --accent-melancholy:       #8B7FB0;
+  --accent-hope:             #7BC4A0;
+
+  /* ── Elevation / Shadows ── */
+  --shadow-xs:               0 1px 2px rgba(26, 29, 43, 0.04);
+  --shadow-sm:               0 1px 3px rgba(26, 29, 43, 0.06), 0 1px 2px rgba(26, 29, 43, 0.04);
+  --shadow-md:               0 4px 8px -1px rgba(26, 29, 43, 0.06), 0 2px 4px -1px rgba(26, 29, 43, 0.04);
+  --shadow-lg:               0 10px 24px -3px rgba(26, 29, 43, 0.08), 0 4px 8px -2px rgba(26, 29, 43, 0.04);
+
+  /* ── Radius ── */
+  --radius-sm:               8px;
+  --radius-md:               12px;
+  --radius-lg:               16px;
+  --radius-xl:               20px;
+  --radius-2xl:              24px;
+  --radius-full:             9999px;
+
+  /* ── Motion ── */
+  --ease-out:                cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:             cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:             cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:           150ms;
+  --duration-normal:         200ms;
+  --duration-slow:           300ms;
+
+  /* ── Typography ── */
+  --font-display:            'DM Serif Display', 'Cormorant Garamond', Georgia, serif;
+  --font-poem:               'Cormorant Garamond', Georgia, serif;
+  --font-sans:               'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ── Layout ── */
+  --max-width:               1280px;
+  --content-width:           680px;
+  --nav-height:              56px;
+  --mobile-nav-height:       64px;
+}
+
+/* ── Dark Mode ── */
+.dark {
+  --background:              #111318;
+  --background-subtle:       #181B24;
+  --background-elevated:     #1E2130;
+
+  --surface:                 #1A1D28;
+  --surface-hover:           #222638;
+  --surface-active:          #2A2E42;
+  --surface-elevated:        #222638;
+  --surface-secondary:       #16181F;
+
+  --text-primary:            #E8EAF0;
+  --text-secondary:          #9096AD;
+  --text-tertiary:           #636882;
+  --text-disabled:           #404560;
+  --text-on-accent:          #FFFFFF;
+
+  --brand-primary:           #8BA5FF;
+  --brand-primary-hover:     #A0B8FF;
+  --brand-primary-subtle:    rgba(139, 165, 255, 0.14);
+  --brand-primary-muted:     rgba(139, 165, 255, 0.08);
+  --brand-secondary:         #F0B0DA;
+  --brand-secondary-hover:   #F5C4E5;
+  --brand-secondary-subtle:  rgba(240, 176, 218, 0.14);
+  --brand-secondary-muted:   rgba(240, 176, 218, 0.08);
+
+  --border-subtle:           #252838;
+  --border-default:          #2E3148;
+  --border-strong:           #3E4260;
+
+  --success:                 #6DCD9E;
+  --success-subtle:          rgba(109, 205, 158, 0.12);
+  --warning:                 #F0BE60;
+  --warning-subtle:          rgba(240, 190, 96, 0.12);
+  --error:                   #F08080;
+  --error-subtle:            rgba(240, 128, 128, 0.12);
+
+  --accent-love:             #F0B0DA;
+  --accent-midnight:         #8B90C8;
+  --accent-nature:           #6DCD9E;
+  --accent-rain:             #80B8E0;
+  --accent-melancholy:       #A8A0D0;
+  --accent-hope:             #80D4B0;
+
+  --shadow-xs:               0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm:               0 1px 3px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-md:               0 4px 8px -1px rgba(0, 0, 0, 0.24), 0 2px 4px -1px rgba(0, 0, 0, 0.16);
+  --shadow-lg:               0 10px 24px -3px rgba(0, 0, 0, 0.32), 0 4px 8px -2px rgba(0, 0, 0, 0.20);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-accent: var(--accent);
-  --color-accent-light: var(--accent-light);
-  --color-accent-muted: var(--accent-muted);
-  --color-border: var(--border);
-  --color-border-light: var(--border-light);
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
-  --font-serif: var(--serif);
-  --font-sans: var(--sans);
-  --font-typewriter: var(--typewriter);
+  --color-background:          var(--background);
+  --color-background-subtle:   var(--background-subtle);
+  --color-background-elevated: var(--background-elevated);
+  --color-surface:             var(--surface);
+  --color-surface-hover:       var(--surface-hover);
+  --color-surface-active:      var(--surface-active);
+  --color-surface-elevated:    var(--surface-elevated);
+  --color-surface-secondary:   var(--surface-secondary);
+  --color-text-primary:        var(--text-primary);
+  --color-text-secondary:      var(--text-secondary);
+  --color-text-tertiary:       var(--text-tertiary);
+  --color-text-disabled:       var(--text-disabled);
+  --color-text-on-accent:      var(--text-on-accent);
+  --color-brand:               var(--brand-primary);
+  --color-brand-hover:         var(--brand-primary-hover);
+  --color-brand-subtle:        var(--brand-primary-subtle);
+  --color-brand-muted:         var(--brand-primary-muted);
+  --color-brand-secondary:     var(--brand-secondary);
+  --color-brand-secondary-hover: var(--brand-secondary-hover);
+  --color-brand-secondary-subtle: var(--brand-secondary-subtle);
+  --color-border-subtle:       var(--border-subtle);
+  --color-border-default:      var(--border-default);
+  --color-border-strong:       var(--border-strong);
+  --color-success:             var(--success);
+  --color-success-subtle:      var(--success-subtle);
+  --color-warning:             var(--warning);
+  --color-warning-subtle:      var(--warning-subtle);
+  --color-error:               var(--error);
+  --color-error-subtle:        var(--error-subtle);
+  --font-display:              var(--font-display);
+  --font-poem:                 var(--font-poem);
+  --font-sans:                 var(--font-sans);
 }
 
-* {
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: var(--sans);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--duration-slow) var(--ease-out),
+              color var(--duration-slow) var(--ease-out);
 }
 
 ::selection {
-  background: var(--accent-muted);
-  color: var(--foreground);
+  background: var(--brand-primary-subtle);
+  color: var(--text-primary);
 }
 
-/* Typography utilities */
-.font-poem {
-  font-family: var(--serif);
+/* ============================================================
+   TYPOGRAPHY CLASSES
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-display);
   font-weight: 400;
-  line-height: 1.8;
-  letter-spacing: 0.01em;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.font-poem {
+  font-family: var(--font-poem);
+  font-weight: 400;
+  line-height: 1.85;
+  letter-spacing: 0.005em;
 }
 
 .font-poem-title {
-  font-family: var(--serif);
+  font-family: var(--font-poem);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.25;
   letter-spacing: -0.01em;
 }
 
 .font-editorial {
-  font-family: var(--serif);
+  font-family: var(--font-poem);
   font-weight: 300;
-  line-height: 1.2;
+  line-height: 1.18;
   letter-spacing: -0.02em;
 }
 
-/* Poem content styling */
+/* Poem content */
 .poem-content {
-  font-family: var(--serif);
-  font-size: 1.25rem;
+  font-family: var(--font-poem);
+  font-size: 1.1875rem;
   line-height: 2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   white-space: pre-line;
   max-width: 42ch;
 }
 
 .poem-content-lg {
-  font-family: var(--serif);
-  font-size: 1.5rem;
+  font-family: var(--font-poem);
+  font-size: 1.375rem;
   line-height: 2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   white-space: pre-line;
   max-width: 42ch;
 }
 
-/* Subtle underline animation */
-.link-underline {
-  position: relative;
-  text-decoration: none;
-}
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
 
-.link-underline::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: currentColor;
-  transition: width 0.3s ease;
-}
-
-.link-underline:hover::after {
-  width: 100%;
-}
-
-/* Fade in animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.6s ease forwards;
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease forwards;
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes likePopIn {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s var(--ease-out) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s var(--ease-out) forwards;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.4s ease forwards;
+  animation: slideIn 0.35s var(--ease-out) forwards;
 }
 
-/* Stagger children animations */
+.animate-scale-in {
+  animation: scaleIn 0.25s var(--ease-out) forwards;
+}
+
+.animate-like-pop {
+  animation: likePopIn 0.35s var(--ease-spring);
+}
+
 .stagger-children > * {
   opacity: 0;
-  animation: fadeInUp 0.5s ease forwards;
+  animation: fadeInUp 0.45s var(--ease-out) forwards;
 }
+.stagger-children > *:nth-child(1) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.24s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.30s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.36s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.42s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.48s; }
 
-.stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
-.stagger-children > *:nth-child(7) { animation-delay: 0.7s; }
-.stagger-children > *:nth-child(8) { animation-delay: 0.8s; }
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--border-default);
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
 }
 
-/* Custom focus styles */
+/* ============================================================
+   FOCUS
+   ============================================================ */
+
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
-/* Toast animation */
+/* ============================================================
+   TOAST
+   ============================================================ */
+
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) translateX(-50%); }
+  to   { opacity: 1; transform: translateY(0) translateX(-50%); }
 }
 
 @keyframes toastOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(16px); }
+  from { opacity: 1; transform: translateY(0) translateX(-50%); }
+  to   { opacity: 0; transform: translateY(12px) translateX(-50%); }
 }
 
 .toast-enter {
-  animation: toastIn 0.3s ease forwards;
+  animation: toastIn 0.3s var(--ease-out) forwards;
 }
 
 .toast-exit {
-  animation: toastOut 0.3s ease forwards;
+  animation: toastOut 0.25s var(--ease-out) forwards;
+}
+
+/* ============================================================
+   GRADIENT UTILITIES
+   ============================================================ */
+
+.gradient-brand {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+}
+
+.gradient-brand-soft {
+  background: linear-gradient(135deg, var(--brand-primary-subtle) 0%, var(--brand-secondary-subtle) 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-default) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
 }

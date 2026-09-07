@@ -15,30 +15,30 @@ export default function CollectionDetailPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-8 md:py-12">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-10">
         <Link
           href="/collections"
-          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-foreground transition-colors mb-8"
+          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8"
         >
           <ArrowLeft size={14} strokeWidth={1.5} />
           Collections
         </Link>
 
-        <div className="mb-10 animate-fade-in">
-          <h1 className="font-poem-title text-3xl md:text-4xl text-foreground mb-3">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="font-poem-title text-2xl md:text-3xl text-text-primary mb-2">
             {collection.title}
           </h1>
-          <p className="text-sm text-text-secondary mb-4">
+          <p className="text-sm text-text-secondary mb-3">
             {collection.description}
           </p>
-          <div className="flex items-center gap-3 text-xs text-text-tertiary">
-            <div className="w-5 h-5 rounded-full bg-accent-muted flex items-center justify-center">
-              <span className="text-accent text-[8px] font-serif font-semibold">
+          <div className="flex items-center gap-2.5 text-xs text-text-tertiary">
+            <div className="w-5 h-5 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center">
+              <span className="text-brand text-[9px] font-display font-medium">
                 {collection.author.name[0]}
               </span>
             </div>
             <span>{collection.author.name}</span>
-            <span>·</span>
+            <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
             <span>{collection.poemCount} poems</span>
           </div>
         </div>

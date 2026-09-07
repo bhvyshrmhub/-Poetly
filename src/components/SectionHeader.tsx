@@ -8,13 +8,13 @@ interface SectionHeaderProps {
 
 export default function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
   return (
-    <div className="flex items-end justify-between mb-6">
+    <div className="flex items-end justify-between mb-5">
       <div>
-        <h2 className="font-serif text-2xl font-medium text-foreground">
+        <h2 className="font-poem text-xl font-medium text-text-primary">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-sm text-text-secondary mt-1">{subtitle}</p>
+          <p className="text-sm text-text-secondary mt-0.5">{subtitle}</p>
         )}
       </div>
       {action && <div>{action}</div>}

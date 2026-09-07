@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, Save } from "lucide-react";
+import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
@@ -10,7 +10,7 @@ import Toast from "@/components/Toast";
 const typographyOptions = [
   { id: "serif", label: "Serif", className: "font-poem" },
   { id: "sans", label: "Sans", className: "font-sans" },
-  { id: "typewriter", label: "Typewriter", className: "font-[family-name:var(--font-typewriter)]" },
+  { id: "editorial", label: "Editorial", className: "font-editorial" },
 ];
 
 const alignmentOptions = [
@@ -20,11 +20,11 @@ const alignmentOptions = [
 ];
 
 const moodOptions = [
-  { name: "Midnight", color: "#3D3D5C" },
-  { name: "Rain", color: "#5C7A8B" },
-  { name: "Love", color: "#9E4C5C" },
-  { name: "Hope", color: "#7A8B5C" },
-  { name: "Melancholy", color: "#6B7B8D" },
+  { name: "Midnight", color: "#4A4F7C" },
+  { name: "Rain", color: "#6CA4D9" },
+  { name: "Love", color: "#E89AC7" },
+  { name: "Hope", color: "#7BC4A0" },
+  { name: "Melancholy", color: "#8B7FB0" },
 ];
 
 export default function WritePage() {
@@ -38,9 +38,7 @@ export default function WritePage() {
   const [showCanvas, setShowCanvas] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const handleSaveDraft = () => {
-    setToast("Draft saved");
-  };
+  const handleSaveDraft = () => setToast("Draft saved");
 
   const handlePreview = () => {
     if (!title.trim() && !content.trim()) {
@@ -53,33 +51,38 @@ export default function WritePage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-6 md:px-8 py-6 md:py-8">
+      <div className="max-w-5xl mx-auto px-5 md:px-6 py-5 md:py-8">
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <Link
             href="/home"
-            className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
           >
             <ArrowLeft size={14} strokeWidth={1.5} />
             Back
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleSaveDraft}
-              className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-foreground transition-colors px-3 py-1.5 rounded-full border border-border hover:border-foreground"
+              className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-full border border-border-subtle hover:border-border-default"
             >
               <Save size={12} strokeWidth={1.5} />
-              Save Draft
+              <span className="hidden sm:inline">Save Draft</span>
             </button>
             <button
               onClick={() => setShowCanvas(!showCanvas)}
-              className="text-xs text-text-tertiary hover:text-foreground transition-colors px-3 py-1.5 rounded-full border border-border hover:border-foreground hidden md:block"
+              className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-full border hidden md:flex ${
+                showCanvas
+                  ? "border-brand/30 text-brand bg-brand-subtle"
+                  : "border-border-subtle text-text-tertiary hover:text-text-primary hover:border-border-default"
+              }`}
             >
+              <Palette size={12} strokeWidth={1.5} />
               Canvas
             </button>
             <button
               onClick={handlePreview}
-              className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-light transition-colors px-3 py-1.5 rounded-full border border-accent/30 hover:border-accent"
+              className="flex items-center gap-1.5 text-xs font-medium text-white bg-brand hover:bg-brand-hover px-4 py-1.5 rounded-full transition-colors"
             >
               <Eye size={12} strokeWidth={1.5} />
               Preview
@@ -95,31 +98,29 @@ export default function WritePage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title"
-              className="w-full bg-transparent font-poem-title text-2xl md:text-3xl text-foreground placeholder:text-text-tertiary outline-none mb-8"
+              className="w-full bg-transparent font-poem-title text-2xl md:text-3xl text-text-primary placeholder:text-text-disabled outline-none mb-8"
             />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Start writing..."
-              className={`w-full bg-transparent text-lg text-foreground placeholder:text-text-tertiary outline-none resize-none min-h-[50vh] leading-relaxed ${
+              className={`w-full bg-transparent text-lg text-text-primary placeholder:text-text-disabled outline-none resize-none min-h-[50vh] leading-relaxed ${
                 selectedTypography === "serif"
                   ? "font-poem"
-                  : selectedTypography === "typewriter"
-                  ? "font-[family-name:var(--font-typewriter)]"
+                  : selectedTypography === "editorial"
+                  ? "font-editorial"
                   : "font-sans"
               }`}
-              style={{
-                textAlign: selectedAlignment as "left" | "center" | "right",
-              }}
+              style={{ textAlign: selectedAlignment as "left" | "center" | "right" }}
             />
           </div>
 
           {/* Canvas panel */}
           {showCanvas && (
-            <div className="hidden md:block w-64 flex-shrink-0 animate-slide-in">
-              <div className="sticky top-24 space-y-6">
+            <div className="hidden md:block w-56 flex-shrink-0 animate-slide-in">
+              <div className="sticky top-20 space-y-6">
                 <div>
-                  <p className="text-xs text-text-tertiary tracking-widest uppercase mb-3">
+                  <p className="text-[11px] font-medium text-text-tertiary tracking-widest uppercase mb-3">
                     Typography
                   </p>
                   <div className="space-y-1">
@@ -127,9 +128,9 @@ export default function WritePage() {
                       <button
                         key={opt.id}
                         onClick={() => setSelectedTypography(opt.id)}
-                        className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        className={`block w-full text-left px-3 py-2 text-sm rounded-[var(--radius-sm)] transition-colors ${
                           selectedTypography === opt.id
-                            ? "bg-accent-muted text-accent"
+                            ? "bg-brand-subtle text-brand font-medium"
                             : "text-text-secondary hover:bg-surface-hover"
                         }`}
                       >
@@ -140,17 +141,17 @@ export default function WritePage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-text-tertiary tracking-widest uppercase mb-3">
+                  <p className="text-[11px] font-medium text-text-tertiary tracking-widest uppercase mb-3">
                     Alignment
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     {alignmentOptions.map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => setSelectedAlignment(opt.id)}
-                        className={`flex-1 px-3 py-2 text-xs rounded-md transition-colors ${
+                        className={`flex-1 px-2 py-1.5 text-xs rounded-[var(--radius-sm)] transition-colors ${
                           selectedAlignment === opt.id
-                            ? "bg-accent-muted text-accent"
+                            ? "bg-brand-subtle text-brand font-medium"
                             : "text-text-secondary hover:bg-surface-hover"
                         }`}
                       >
@@ -161,18 +162,18 @@ export default function WritePage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-text-tertiary tracking-widest uppercase mb-3">
+                  <p className="text-[11px] font-medium text-text-tertiary tracking-widest uppercase mb-3">
                     Mood
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {moodOptions.map((mood) => (
                       <button
                         key={mood.name}
                         onClick={() => setSelectedMood(selectedMood === mood.name ? null : mood.name)}
-                        className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                        className={`px-2.5 py-1 text-[11px] rounded-full border transition-colors ${
                           selectedMood === mood.name
-                            ? "border-foreground text-foreground"
-                            : "border-border text-text-tertiary hover:border-text-secondary"
+                            ? "border-brand text-brand bg-brand-subtle"
+                            : "border-border-subtle text-text-tertiary hover:border-border-default"
                         }`}
                       >
                         {mood.name}
@@ -182,7 +183,7 @@ export default function WritePage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-text-tertiary tracking-widest uppercase mb-3">
+                  <p className="text-[11px] font-medium text-text-tertiary tracking-widest uppercase mb-3">
                     Tags
                   </p>
                   <input
@@ -190,7 +191,7 @@ export default function WritePage() {
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="love, rain, midnight"
-                    className="w-full bg-transparent border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary outline-none focus:border-accent"
+                    className="w-full bg-surface-secondary border border-border-subtle rounded-[var(--radius-sm)] px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:border-brand transition-colors"
                   />
                 </div>
               </div>
@@ -200,30 +201,30 @@ export default function WritePage() {
       </div>
 
       {/* Mobile canvas controls */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 z-40">
-        <div className="flex gap-2 overflow-x-auto">
+      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border-subtle px-4 py-2.5 z-40">
+        <div className="flex gap-1.5 overflow-x-auto">
           {typographyOptions.map((opt) => (
             <button
               key={opt.id}
               onClick={() => setSelectedTypography(opt.id)}
               className={`px-3 py-1.5 text-xs rounded-full border flex-shrink-0 transition-colors ${
                 selectedTypography === opt.id
-                  ? "border-accent text-accent"
-                  : "border-border text-text-tertiary"
+                  ? "border-brand text-brand bg-brand-subtle"
+                  : "border-border-subtle text-text-tertiary"
               }`}
             >
               {opt.label}
             </button>
           ))}
-          <span className="w-px bg-border flex-shrink-0" />
+          <span className="w-px bg-border-subtle flex-shrink-0 my-1" />
           {alignmentOptions.map((opt) => (
             <button
               key={opt.id}
               onClick={() => setSelectedAlignment(opt.id)}
               className={`px-3 py-1.5 text-xs rounded-full border flex-shrink-0 transition-colors ${
                 selectedAlignment === opt.id
-                  ? "border-accent text-accent"
-                  : "border-border text-text-tertiary"
+                  ? "border-brand text-brand bg-brand-subtle"
+                  : "border-border-subtle text-text-tertiary"
               }`}
             >
               {opt.label}

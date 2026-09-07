@@ -15,40 +15,39 @@ export default function PromptDetailPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-8 md:py-12">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-10">
         <Link
           href="/prompts"
-          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-foreground transition-colors mb-8"
+          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8"
         >
           <ArrowLeft size={14} strokeWidth={1.5} />
           Prompts
         </Link>
 
-        <div className="mb-12 animate-fade-in">
-          <p className="text-xs text-text-tertiary tracking-widest uppercase mb-4">
+        <div className="mb-10 animate-fade-in">
+          <p className="text-[11px] font-medium text-brand tracking-widest uppercase mb-4">
             Writing Prompt
           </p>
-          <h1 className="font-poem-title text-2xl md:text-4xl text-foreground mb-4 italic">
+          <h1 className="font-poem-title text-2xl md:text-3xl text-text-primary mb-3 italic">
             &ldquo;{prompt.title}&rdquo;
           </h1>
-          <p className="text-sm text-text-secondary mb-4 max-w-lg">
+          <p className="text-sm text-text-secondary mb-3 max-w-md leading-relaxed">
             {prompt.description}
           </p>
-          <p className="text-sm text-text-tertiary mb-6">
+          <p className="text-sm text-text-tertiary mb-5">
             {prompt.participants} writers participated
           </p>
           <Link
             href="/write"
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-foreground text-background text-sm font-medium rounded-full hover:bg-foreground/90 transition-colors"
+            className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
           >
             Write a poem
           </Link>
         </div>
 
-        {/* Submitted poems */}
         {prompt.poems.length > 0 && (
           <section>
-            <h2 className="font-serif text-lg text-foreground mb-4">
+            <h2 className="font-poem text-lg font-medium text-text-primary mb-4">
               Submitted Poems
             </h2>
             <div>

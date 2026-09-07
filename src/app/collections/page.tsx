@@ -9,17 +9,17 @@ export default function CollectionsPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-6 md:px-8 py-12 md:py-16 pb-24 md:pb-16">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="font-editorial text-3xl md:text-4xl text-foreground mb-2">
+      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+        <div className="mb-6 animate-fade-in">
+          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">
             Collections
           </h1>
-          <p className="text-text-secondary">
+          <p className="text-sm text-text-secondary">
             Curated groups of poems.
           </p>
         </div>
 
-        <div className="divide-y divide-border-light">
+        <div>
           {collections.map((collection) => (
             <CollectionCard key={collection.id} collection={collection} />
           ))}

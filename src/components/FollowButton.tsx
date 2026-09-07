@@ -16,12 +16,12 @@ export default function FollowButton({
   return (
     <button
       onClick={() => setFollowed(!followed)}
-      className={`font-medium rounded-full border transition-all ${
-        size === "sm" ? "px-3 py-1 text-xs" : "px-5 py-1.5 text-sm"
+      className={`font-medium rounded-full transition-all duration-150 ${
+        size === "sm" ? "px-3.5 py-1 text-xs" : "px-5 py-1.5 text-sm"
       } ${
         followed
-          ? "bg-foreground text-background border-foreground hover:bg-foreground/90"
-          : "bg-transparent text-foreground border-border hover:border-foreground"
+          ? "bg-text-primary text-background hover:bg-text-primary/90"
+          : "bg-brand text-white hover:bg-brand-hover"
       }`}
     >
       {followed ? "Following" : "Follow"}

@@ -20,29 +20,28 @@ export default function PoemPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <article className="max-w-3xl mx-auto px-6 md:px-8 py-8 md:py-16">
-        {/* Back link */}
+      <article className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-12">
+        {/* Back */}
         <Link
           href="/home"
-          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-foreground transition-colors mb-12"
+          className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-10"
         >
           <ArrowLeft size={14} strokeWidth={1.5} />
           Back
         </Link>
 
-        {/* Poem */}
         <div className="animate-fade-in">
-          {/* Author info */}
+          {/* Author */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 rounded-full bg-accent-muted flex items-center justify-center">
-              <span className="text-accent text-xs font-serif font-semibold">
+            <div className="w-9 h-9 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center">
+              <span className="text-brand text-sm font-display font-medium">
                 {poem.author.name[0]}
               </span>
             </div>
             <div>
               <Link
                 href={`/profile?id=${poem.author.id}`}
-                className="text-sm font-medium text-foreground hover:text-accent transition-colors"
+                className="text-sm font-medium text-text-primary hover:text-brand transition-colors"
               >
                 {poem.author.name}
               </Link>
@@ -51,23 +50,20 @@ export default function PoemPage() {
           </div>
 
           {/* Title */}
-          <h1 className="font-poem-title text-3xl md:text-5xl text-foreground mb-10">
+          <h1 className="font-poem-title text-3xl md:text-[2.75rem] text-text-primary mb-10">
             {poem.title}
           </h1>
 
-          {/* Poem content */}
-          <div className="poem-content-lg text-foreground/90 mb-12">
+          {/* Content */}
+          <div className="poem-content-lg text-text-primary/85 mb-10">
             {poem.content}
           </div>
 
           {/* Tags */}
           {poem.tags && (
-            <div className="flex flex-wrap gap-2 mb-12">
+            <div className="flex flex-wrap gap-2 mb-10">
               {poem.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs text-text-tertiary"
-                >
+                <span key={tag} className="text-xs text-text-tertiary bg-surface-secondary px-2.5 py-1 rounded-full">
                   #{tag}
                 </span>
               ))}
@@ -75,46 +71,46 @@ export default function PoemPage() {
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-6 py-6 border-y border-border-light mb-8">
+          <div className="flex items-center gap-5 py-5 border-y border-border-subtle mb-8">
             <button
               onClick={() => {
                 setLiked(!liked);
                 setLikeCount(liked ? likeCount - 1 : likeCount + 1);
               }}
-              className={`flex items-center gap-2 text-sm transition-colors ${
-                liked ? "text-accent" : "text-text-tertiary hover:text-text-secondary"
+              className={`flex items-center gap-2 text-sm transition-all duration-150 ${
+                liked ? "text-brand" : "text-text-tertiary hover:text-text-secondary"
               }`}
-              aria-label={liked ? "Unlike" : "Like"}
             >
-              <Heart size={18} strokeWidth={1.5} fill={liked ? "currentColor" : "none"} />
+              <Heart size={17} strokeWidth={1.5} fill={liked ? "currentColor" : "none"}
+                className={liked ? "animate-like-pop" : ""}
+              />
               <span>{likeCount}</span>
             </button>
             <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
-              <MessageCircle size={18} strokeWidth={1.5} />
+              <MessageCircle size={17} strokeWidth={1.5} />
               <span>{poem.comments}</span>
             </button>
             <button
               onClick={() => setSaved(!saved)}
-              className={`flex items-center gap-2 text-sm transition-colors ${
-                saved ? "text-accent" : "text-text-tertiary hover:text-text-secondary"
+              className={`flex items-center gap-2 text-sm transition-all duration-150 ${
+                saved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"
               }`}
-              aria-label={saved ? "Unsave" : "Save"}
             >
-              <Bookmark size={18} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
+              <Bookmark size={17} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
             </button>
             <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
-              <Share2 size={18} strokeWidth={1.5} />
+              <Share2 size={17} strokeWidth={1.5} />
             </button>
           </div>
 
           {/* Respond CTA */}
-          <div className="text-center mb-12">
-            <p className="text-sm text-text-secondary mb-4">
+          <div className="text-center mb-10 py-6 bg-surface-secondary rounded-[var(--radius-lg)]">
+            <p className="text-sm text-text-secondary mb-3">
               Not a comment. A poem.
             </p>
             <Link
               href={`/poem/${poem.id}/respond`}
-              className="inline-flex items-center justify-center px-6 py-3 bg-foreground text-background text-sm font-medium rounded-full hover:bg-foreground/90 transition-colors"
+              className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity"
             >
               Respond with a poem
             </Link>
