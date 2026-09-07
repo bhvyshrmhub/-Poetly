@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const leftLinks = [
     { href: "/home", label: "Home", icon: Home },
@@ -21,8 +23,7 @@ export default function Navbar() {
 
   return (
     <nav className="hidden md:flex items-center justify-between px-6 h-[var(--nav-height)] border-b border-border-subtle bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-      {/* Logo */}
-      <Link href="/" className="flex items-center gap-2.5 mr-8">
+      <Link href={user ? "/home" : "/"} className="flex items-center gap-2.5 mr-8">
         <div className="w-7 h-7 rounded-[var(--radius-sm)] gradient-brand flex items-center justify-center">
           <span className="text-white text-xs font-semibold">P</span>
         </div>
@@ -31,7 +32,6 @@ export default function Navbar() {
         </span>
       </Link>
 
-      {/* Left nav */}
       <div className="flex items-center gap-1">
         {leftLinks.map((link) => {
           const Icon = link.icon;
@@ -53,7 +53,6 @@ export default function Navbar() {
         })}
       </div>
 
-      {/* Center — Create */}
       <Link
         href="/write"
         className="flex items-center gap-2 px-4 py-1.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
@@ -62,7 +61,6 @@ export default function Navbar() {
         <span className="hidden lg:inline">Create</span>
       </Link>
 
-      {/* Right nav */}
       <div className="flex items-center gap-1">
         {rightLinks.map((link) => {
           const Icon = link.icon;

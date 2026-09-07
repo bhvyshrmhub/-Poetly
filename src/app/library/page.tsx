@@ -1,82 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { poems, collections, writers } from "@/lib/mock-data";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase/client";
+import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import CollectionCard from "@/components/CollectionCard";
-import WriterCard from "@/components/WriterCard";
-import EmptyState from "@/components/EmptyState";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function LibraryPage() {
-  const [activeTab, setActiveTab] = useState<"saved" | "collections" | "writers">("saved");
-  const savedPoems = poems.slice(0, 4);
+  const { user } = useAuth();
+  const [savedPoems, setSavedPoems] = useState<PoemWithAuthor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSaved = useCallback(async () => {
+    const { data: saves } = await supabase
+      .from("saves")
+      .select("poem_id")
+      .eq("user_id", user!.id);
+
+    if (!saves || saves.length === 0) {
+      setSavedPoems([]);
+      setLoading(false);
+      return;
+    }
+
+    const poemIds = saves.map((s) => s.poem_id);
+    const { data } = await supabase
+      .from("poems")
+      .select("*, profiles!inner(*)")
+      .in("id", poemIds)
+      .order("created_at", { ascending: false });
+
+    setSavedPoems((data as PoemWithAuthor[]) || []);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (user) fetchSaved();
+  }, [user, fetchSaved]);
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-6 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">
-            Library
-          </h1>
-          <p className="text-sm text-text-secondary">
-            Your saved poems and collections.
-          </p>
+          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Library</h1>
+          <p className="text-sm text-text-secondary">Your saved poems.</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
-          {(["saved", "collections", "writers"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 capitalize ${
-                activeTab === tab
-                  ? "bg-surface text-text-primary shadow-sm"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {tab === "saved" ? "Saved" : tab}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "saved" && (
-          <div>
-            {savedPoems.length > 0 ? (
-              savedPoems.map((poem) => (
-                <PoemCard key={poem.id} poem={poem} />
-              ))
-            ) : (
-              <EmptyState
-                title="Nothing saved yet."
-                description="The next poem that stays with you can live here."
-                action={
-                  <Link href="/trending" className="text-sm font-medium text-brand hover:text-brand-hover transition-colors">
-                    Explore poems →
-                  </Link>
-                }
-              />
-            )}
+        {loading ? (
+          <div className="space-y-5">
+            {[1, 2, 3].map((i) => <div key={i} className="h-24 skeleton rounded-[var(--radius-md)]" />)}
           </div>
-        )}
-
-        {activeTab === "collections" && (
-          <div>
-            {collections.map((collection) => (
-              <CollectionCard key={collection.id} collection={collection} />
-            ))}
-          </div>
-        )}
-
-        {activeTab === "writers" && (
-          <div className="space-y-1">
-            {writers.slice(0, 4).map((writer) => (
-              <WriterCard key={writer.id} writer={writer} />
-            ))}
+        ) : savedPoems.length > 0 ? (
+          savedPoems.map((poem) => <PoemCard key={poem.id} poem={poem} />)
+        ) : (
+          <div className="text-center py-16">
+            <p className="font-poem text-xl text-text-tertiary italic mb-2">Nothing saved yet.</p>
+            <p className="text-sm text-text-tertiary">Save poems that speak to you.</p>
           </div>
         )}
       </main>

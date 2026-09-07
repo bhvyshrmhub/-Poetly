@@ -1,10 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { poems, writers } from "@/lib/mock-data";
-import WriterCard from "@/components/WriterCard";
+import { useAuth } from "@/components/AuthProvider";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function LandingPage() {
+export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.replace("/home");
+      }
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  // Public discovery for logged-out users
+  return <PublicDiscovery />;
+}
+
+function PublicDiscovery() {
   return (
     <div className="min-h-screen">
       {/* Nav */}
@@ -16,17 +41,17 @@ export default function LandingPage() {
           <span className="font-display text-xl text-text-primary">Poetly</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/home" className="text-sm text-text-secondary hover:text-text-primary transition-colors px-3 py-1.5">
-            Explore
+          <Link href="/login" className="text-sm text-text-secondary hover:text-text-primary transition-colors px-3 py-1.5">
+            Log in
           </Link>
-          <Link href="/write" className="text-sm font-medium text-white bg-brand hover:bg-brand-hover px-4 py-2 rounded-[var(--radius-full)] transition-colors">
-            Start Writing
+          <Link href="/signup" className="text-sm font-medium text-white bg-brand hover:bg-brand-hover px-4 py-2 rounded-[var(--radius-full)] transition-colors">
+            Sign up
           </Link>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="min-h-[90vh] flex flex-col justify-center px-6 md:px-10 max-w-[var(--max-width)] mx-auto">
+      <section className="min-h-[85vh] flex flex-col justify-center px-6 md:px-10 max-w-[var(--max-width)] mx-auto">
         <div className="animate-fade-in max-w-3xl">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-1.5 h-1.5 rounded-full bg-brand" />
@@ -42,42 +67,23 @@ export default function LandingPage() {
             feel <span className="gradient-text italic">beautiful</span>.
           </h1>
           <p className="text-lg md:text-xl text-text-secondary max-w-xl mb-10 leading-relaxed">
-            Poetly is a social platform for poetry, creative writing, and emotional expression. 
-            Read, write, and respond to poetry in a space designed for attention.
+            Poetly is a social platform for poetry, creative writing, and emotional expression.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
-              href="/write"
+              href="/signup"
               className="inline-flex items-center justify-center px-6 py-3 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
             >
               Start Writing
             </Link>
             <Link
-              href="/explore"
+              href="/trending"
               className="inline-flex items-center justify-center px-6 py-3 border border-border-default text-text-primary text-sm font-medium rounded-[var(--radius-full)] hover:border-brand hover:text-brand transition-colors"
             >
               Explore Poems
             </Link>
           </div>
         </div>
-      </section>
-
-      {/* Featured poem */}
-      <section className="py-20 px-6 md:px-10 max-w-[var(--max-width)] mx-auto border-t border-border-subtle">
-        <Link href={`/poem/${poems[3].id}`} className="group block max-w-2xl mx-auto text-center">
-          <p className="text-[11px] font-medium text-brand tracking-widest uppercase mb-8">
-            Featured Poem
-          </p>
-          <h2 className="font-poem-title text-3xl md:text-4xl lg:text-5xl mb-8 text-text-primary group-hover:text-brand transition-colors">
-            {poems[3].title}
-          </h2>
-          <div className="poem-content-lg text-text-primary/80 mx-auto mb-8">
-            {poems[3].content}
-          </div>
-          <p className="text-sm text-text-secondary">
-            — {poems[3].author.name}
-          </p>
-        </Link>
       </section>
 
       {/* What happens here */}
@@ -102,42 +108,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Featured writers */}
-      <section className="py-20 px-6 md:px-10 max-w-[var(--max-width)] mx-auto border-t border-border-subtle">
-        <p className="text-[11px] font-medium text-brand tracking-widest uppercase mb-14 text-center">
-          Featured Writers
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children max-w-3xl mx-auto">
-          {writers.map((writer) => (
-            <WriterCard key={writer.id} writer={writer} />
-          ))}
-        </div>
-      </section>
-
-      {/* Poetry preview */}
-      <section className="py-20 px-6 md:px-10 max-w-[var(--max-width)] mx-auto border-t border-border-subtle">
-        <p className="text-[11px] font-medium text-brand tracking-widest uppercase mb-14 text-center">
-          Poetry Preview
-        </p>
-        <div className="space-y-16 stagger-children max-w-2xl mx-auto">
-          {poems.slice(0, 3).map((poem) => (
-            <div key={poem.id} className="text-center">
-              <Link href={`/poem/${poem.id}`} className="group block">
-                <h3 className="font-poem-title text-2xl md:text-3xl mb-4 text-text-primary group-hover:text-brand transition-colors">
-                  {poem.title}
-                </h3>
-                <div className="poem-content mx-auto text-text-primary/75">
-                  {poem.content}
-                </div>
-                <p className="text-sm text-text-secondary mt-4">
-                  — {poem.author.name}
-                </p>
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="py-28 px-6 md:px-10 text-center border-t border-border-subtle">
         <div className="max-w-2xl mx-auto">
@@ -146,11 +116,9 @@ export default function LandingPage() {
             <br />
             worth leaving behind.
           </h2>
-          <p className="text-text-secondary mb-8">
-            Your words deserve a place of their own.
-          </p>
+          <p className="text-text-secondary mb-8">Your words deserve a place of their own.</p>
           <Link
-            href="/write"
+            href="/signup"
             className="inline-flex items-center justify-center px-8 py-3.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
           >
             Start Writing
@@ -158,7 +126,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-8 px-6 md:px-10 border-t border-border-subtle">
         <div className="max-w-[var(--max-width)] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
@@ -168,9 +135,8 @@ export default function LandingPage() {
             <span className="font-display text-sm text-text-tertiary">Poetly</span>
           </div>
           <div className="flex gap-6 text-xs text-text-tertiary">
-            <Link href="/home" className="hover:text-text-primary transition-colors">Home</Link>
             <Link href="/trending" className="hover:text-text-primary transition-colors">Trending</Link>
-            <Link href="/write" className="hover:text-text-primary transition-colors">Write</Link>
+            <Link href="/login" className="hover:text-text-primary transition-colors">Log in</Link>
           </div>
         </div>
       </footer>

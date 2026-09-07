@@ -16,7 +16,7 @@ export default function MobileNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border-subtle safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border-subtle">
       <div className="flex items-center justify-around px-1 py-1.5" style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}>
         {items.map((item) => {
           const Icon = item.icon;
@@ -40,9 +40,7 @@ export default function MobileNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-[var(--radius-sm)] transition-colors min-w-[48px] ${
-                isActive
-                  ? "text-brand"
-                  : "text-text-tertiary"
+                isActive ? "text-brand" : "text-text-tertiary"
               }`}
               aria-label={item.label}
             >
