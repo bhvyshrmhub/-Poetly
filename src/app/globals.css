@@ -411,3 +411,80 @@ body {
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
 }
+
+/* ============================================================
+   ACCESSIBILITY — WCAG 2.1
+   ============================================================ */
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  padding: 8px 16px;
+  background: var(--brand-primary);
+  color: var(--text-on-accent);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 16px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .gradient-brand {
+    background: ButtonText;
+  }
+  .gradient-text {
+    -webkit-text-fill-color: ButtonText;
+  }
+}
+
+/* Focus-visible for all interactive elements */
+button, a, input, textarea, select, [tabindex] {
+  focus-visible: none;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Touch targets — minimum 44x44 for mobile */
+@media (pointer: coarse) {
+  button, a, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE UTILITIES
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .poem-content-lg {
+    font-size: 1.125rem;
+    line-height: 1.85;
+  }
+}
+
+/* Print styles */
+@media print {
+  body { background: white; color: black; }
+  .no-print { display: none !important; }
+}

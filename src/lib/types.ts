@@ -53,3 +53,10 @@ export type CommentWithAuthor = Comment & {
 export type NotificationWithActor = Notification & {
   profiles: Profile | null;
 };
+
+export type WriterWithStats = Profile & {
+  followerCount: number;
+  followingCount: number;
+  poemCount: number;
+  isFollowed: boolean;
+};

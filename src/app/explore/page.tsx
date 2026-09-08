@@ -2,43 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
-import { PoemWithAuthor } from "@/lib/types";
+import { PoemWithAuthor, Prompt } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
+import PromptCard from "@/components/PromptCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
-export default function HomePage() {
-  const { profile, isGuest } = useAuth();
+export default function ExplorePage() {
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"forYou" | "following">("forYou");
+  const [activeTab, setActiveTab] = useState<"poems" | "prompts" | "writers">("poems");
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      if (activeTab === "following" && !isGuest) {
-        const { data: follows } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", profile?.id || "");
-        const followedIds = follows?.map((f) => f.following_id) || [];
-        if (followedIds.length === 0) {
-          setPoems([]);
-          setLoading(false);
-          return;
-        }
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .in("author_id", followedIds)
-          .order("published_at", { ascending: false })
-          .limit(20);
-        setPoems((data as PoemWithAuthor[]) || []);
-      } else {
+
+      if (activeTab === "poems") {
         const { data } = await supabase
           .from("poems")
           .select("*, profiles!inner(*)")
@@ -47,41 +28,32 @@ export default function HomePage() {
           .order("published_at", { ascending: false })
           .limit(20);
         setPoems((data as PoemWithAuthor[]) || []);
+      } else if (activeTab === "prompts") {
+        const { data } = await supabase
+          .from("prompts")
+          .select("*")
+          .order("created_at", { ascending: false });
+        setPrompts((data as Prompt[]) || []);
       }
+
       setLoading(false);
     })();
-  }, [activeTab, isGuest, profile?.id]);
-
-  const hour = new Date().getHours();
-  let greeting = "Good evening.";
-  if (hour < 12) greeting = "Good morning.";
-  else if (hour < 17) greeting = "Good afternoon.";
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-8 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">{greeting}</h1>
-          <p className="text-sm text-text-secondary">
-            {isGuest ? "Explore the world of poetry on Poetly." : `Welcome, ${profile?.display_name}.`}
-          </p>
+          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Explore</h1>
+          <p className="text-sm text-text-secondary">Discover poetry on Poetly</p>
         </div>
-
-        <Link
-          href="/write"
-          className="flex items-center gap-3 w-full px-4 py-3 bg-surface border border-border-subtle rounded-[var(--radius-md)] text-text-tertiary hover:border-brand/30 hover:bg-surface-hover transition-all mb-8"
-        >
-          <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center flex-shrink-0">
-            <span className="text-brand text-xs font-display">{profile?.display_name?.[0] || "P"}</span>
-          </div>
-          <span className="text-sm">Write a poem...</span>
-        </Link>
 
         <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
           {[
-            { id: "forYou" as const, label: "For You" },
-            ...(isGuest ? [] : [{ id: "following" as const, label: "Following" }]),
+            { id: "poems" as const, label: "Poems" },
+            { id: "prompts" as const, label: "Prompts" },
+            { id: "writers" as const, label: "Writers" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -112,15 +84,35 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-          ) : poems.length > 0 ? (
-            poems.map((poem) => <PoemCard key={poem.id} poem={poem} />)
+          ) : activeTab === "poems" ? (
+            poems.length > 0 ? (
+              poems.map((poem) => <PoemCard key={poem.id} poem={poem} />)
+            ) : (
+              <div className="text-center py-16">
+                <p className="font-poem text-xl text-text-tertiary italic mb-2">No poems yet.</p>
+                <p className="text-sm text-text-tertiary">Be the first to publish.</p>
+              </div>
+            )
+          ) : activeTab === "prompts" ? (
+            prompts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {prompts.map((prompt) => (
+                  <Link key={prompt.id} href={`/prompts/${prompt.id}`}>
+                    <PromptCard prompt={prompt} />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <p className="font-poem text-xl text-text-tertiary italic mb-2">No prompts yet.</p>
+                <p className="text-sm text-text-tertiary">Check back soon for writing prompts.</p>
+              </div>
+            )
           ) : (
             <div className="text-center py-16">
-              <p className="font-poem text-xl text-text-tertiary italic mb-2">
-                {activeTab === "following" ? "Follow some writers to see their poems here." : "Poetly is waiting for its first words."}
-              </p>
+              <p className="font-poem text-xl text-text-tertiary italic mb-2">Discover writers coming soon.</p>
               <p className="text-sm text-text-tertiary">
-                {activeTab === "following" ? "Discover writers in Trending." : "Be the first to publish a poem."}
+                <Link href="/login" className="text-brand hover:text-brand-hover">Join</Link> to find and follow poets.
               </p>
             </div>
           )}

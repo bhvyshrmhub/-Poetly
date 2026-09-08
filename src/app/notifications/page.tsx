@@ -8,15 +8,21 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("notifications")
       .select("*")
-      .eq("recipient_id", user!.id)
+      .eq("recipient_id", user.id)
       .order("created_at", { ascending: false })
       .limit(30);
 
@@ -25,17 +31,15 @@ export default function NotificationsPage() {
     await supabase
       .from("notifications")
       .update({ read: true })
-      .eq("recipient_id", user!.id)
+      .eq("recipient_id", user.id)
       .eq("read", false);
 
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    if (user) fetchNotifications();
-  }, [user, fetchNotifications]);
-
-  if (!user) return null;
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const typeIcons: Record<string, string> = {
     like: "\u2661",
@@ -56,6 +60,11 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => <div key={i} className="h-16 skeleton rounded-[var(--radius-md)]" />)}
+          </div>
+        ) : isGuest ? (
+          <div className="text-center py-16">
+            <p className="font-poem text-xl text-text-tertiary italic mb-2">No notifications yet.</p>
+            <p className="text-sm text-text-tertiary">Sign in to see your notifications.</p>
           </div>
         ) : notifications.length > 0 ? (
           <div className="space-y-1">

@@ -7,11 +7,25 @@ import { Database } from "@/lib/database.types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000000";
+const DEMO_PROFILE: Profile = {
+  id: DEMO_USER_ID,
+  username: "guest",
+  display_name: "Guest Poet",
+  bio: "Exploring Poetly without an account.",
+  profile_image: null,
+  website: null,
+  location: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  isGuest: boolean;
   signUp: (email: string, password: string, username: string, displayName: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
@@ -24,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   session: null,
   loading: true,
+  isGuest: true,
   signUp: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
   signInWithGoogle: async () => ({ error: null }),
@@ -66,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         });
       } else {
+        setProfile(DEMO_PROFILE);
         setLoading(false);
       }
     });
@@ -78,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const p = await fetchProfile(session.user.id);
           setProfile(p);
         } else {
-          setProfile(null);
+          setProfile(DEMO_PROFILE);
         }
         setLoading(false);
       }
@@ -119,9 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setProfile(null);
+    setProfile(DEMO_PROFILE);
     setSession(null);
   };
+
+  const isGuest = !user;
 
   return (
     <AuthContext.Provider
@@ -130,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         session,
         loading,
+        isGuest,
         signUp,
         signIn,
         signInWithGoogle,

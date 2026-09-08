@@ -9,15 +9,20 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function LibraryPage() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [savedPoems, setSavedPoems] = useState<PoemWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSaved = useCallback(async () => {
+    if (!user) {
+      setSavedPoems([]);
+      setLoading(false);
+      return;
+    }
     const { data: saves } = await supabase
       .from("saves")
       .select("poem_id")
-      .eq("user_id", user!.id);
+      .eq("user_id", user.id);
 
     if (!saves || saves.length === 0) {
       setSavedPoems([]);
@@ -37,10 +42,8 @@ export default function LibraryPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user) fetchSaved();
-  }, [user, fetchSaved]);
-
-  if (!user) return null;
+    fetchSaved();
+  }, [fetchSaved]);
 
   return (
     <div className="min-h-screen">
@@ -48,12 +51,19 @@ export default function LibraryPage() {
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-6 animate-fade-in">
           <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Library</h1>
-          <p className="text-sm text-text-secondary">Your saved poems.</p>
+          <p className="text-sm text-text-secondary">
+            {isGuest ? "Sign in to save poems to your library." : "Your saved poems."}
+          </p>
         </div>
 
         {loading ? (
           <div className="space-y-5">
             {[1, 2, 3].map((i) => <div key={i} className="h-24 skeleton rounded-[var(--radius-md)]" />)}
+          </div>
+        ) : isGuest ? (
+          <div className="text-center py-16">
+            <p className="font-poem text-xl text-text-tertiary italic mb-2">Nothing saved yet.</p>
+            <p className="text-sm text-text-tertiary">Sign in to save poems that speak to you.</p>
           </div>
         ) : savedPoems.length > 0 ? (
           savedPoems.map((poem) => <PoemCard key={poem.id} poem={poem} />)

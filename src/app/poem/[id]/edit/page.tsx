@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Save, Palette, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
+import { Database } from "@/lib/database.types";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
+
+type Poem = Database["public"]["Tables"]["poems"]["Row"];
 
 const typographyOptions = [
   { id: "serif", label: "Serif", className: "font-poem" },
@@ -29,9 +32,13 @@ const moodOptions = [
   { name: "Melancholy", color: "#8B7FB0" },
 ];
 
-export default function WritePage() {
+export default function EditPoemPage() {
   const router = useRouter();
-  const { user, isGuest } = useAuth();
+  const params = useParams();
+  const { user } = useAuth();
+  const poemId = params.id as string;
+
+  const [poem, setPoem] = useState<Poem | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTypography, setSelectedTypography] = useState("serif");
@@ -41,77 +48,100 @@ export default function WritePage() {
   const [showCanvas, setShowCanvas] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const charCount = content.length;
+  useEffect(() => {
+    if (!poemId) return;
+    supabase
+      .from("poems")
+      .select("*")
+      .eq("id", poemId)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          setToast("Poem not found");
+          router.push("/home");
+          return;
+        }
+        if (data.author_id !== user?.id) {
+          setToast("Not authorized");
+          router.push(`/poem/${poemId}`);
+          return;
+        }
+        setPoem(data);
+        setTitle(data.title || "");
+        setContent(data.content);
+        setSelectedMood(data.mood);
+        setTags(data.tags?.join(", ") || "");
+        setLoading(false);
+      });
+  }, [poemId, user?.id, router]);
 
-  const handleSaveDraft = async () => {
-    if (!user || (!title.trim() && !content.trim())) return;
-    setSaving(true);
-
-    const { error } = await supabase.from("poems").insert({
-      author_id: user.id,
-      title: title || "Untitled",
-      content,
-      mood: selectedMood,
-      tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-      status: "draft",
-    });
-
-    setSaving(false);
-    setToast(error ? "Failed to save" : "Draft saved");
-  };
-
-  const handlePublish = async () => {
-    if (!content.trim()) {
+  const handleSave = async () => {
+    if (!poem || !content.trim()) {
       setToast("Write something first");
       return;
     }
+    setSaving(true);
 
-    if (isGuest) {
-      setToast("Sign in to publish poems");
-      return;
-    }
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("poems")
-      .insert({
-        author_id: user!.id,
+      .update({
         title: title || "Untitled",
         content,
         mood: selectedMood,
         tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-        status: "published",
-        published_at: new Date().toISOString(),
       })
-      .select()
-      .single();
+      .eq("id", poem.id);
 
-    if (!error && data) {
-      router.push(`/poem/${data.id}`);
+    setSaving(false);
+    setToast(error ? "Failed to save" : "Saved");
+  };
+
+  const handleDelete = async () => {
+    if (!poem || !confirm("Delete this poem? This cannot be undone.")) return;
+
+    const { error } = await supabase.from("poems").delete().eq("id", poem.id);
+    if (!error) {
+      router.push("/home");
     } else {
-      setToast("Failed to publish");
+      setToast("Failed to delete");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="max-w-5xl mx-auto px-5 md:px-6 py-8">
+          <div className="h-8 skeleton w-20 rounded mb-8" />
+          <div className="h-10 skeleton w-64 rounded mb-8" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-5 skeleton rounded" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <div className="max-w-5xl mx-auto px-5 md:px-6 py-5 md:py-8">
         <div className="flex items-center justify-between mb-6">
-          <Link href="/home" className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
+          <Link href={`/poem/${poemId}`} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
             <ArrowLeft size={14} strokeWidth={1.5} /> Back
           </Link>
           <div className="flex items-center gap-2">
-            <button onClick={handleSaveDraft} disabled={saving || isGuest} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-full border border-border-subtle hover:border-border-default disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-full border border-border-subtle hover:border-border-default disabled:opacity-50">
               <Save size={12} strokeWidth={1.5} />
-              <span className="hidden sm:inline">{saving ? "Saving..." : "Save Draft"}</span>
+              <span className="hidden sm:inline">{saving ? "Saving..." : "Save"}</span>
             </button>
             <button onClick={() => setShowCanvas(!showCanvas)} className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-full border hidden md:flex ${showCanvas ? "border-brand/30 text-brand bg-brand-subtle" : "border-border-subtle text-text-tertiary hover:text-text-primary hover:border-border-default"}`}>
               <Palette size={12} strokeWidth={1.5} /> Canvas
             </button>
-            <button onClick={handlePublish} className="flex items-center gap-1.5 text-xs font-medium text-white bg-brand hover:bg-brand-hover px-4 py-1.5 rounded-full transition-colors">
-              <Eye size={12} strokeWidth={1.5} /> Publish
+            <button onClick={handleDelete} className="flex items-center gap-1.5 text-xs text-error hover:text-error-hover transition-colors px-3 py-1.5 rounded-full border border-error/20 hover:border-error/40">
+              <Trash2 size={12} strokeWidth={1.5} /> <span className="hidden sm:inline">Delete</span>
             </button>
           </div>
         </div>
@@ -120,11 +150,6 @@ export default function WritePage() {
           <div className="flex-1 min-w-0">
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-transparent font-poem-title text-2xl md:text-3xl text-text-primary placeholder:text-text-disabled outline-none mb-8" />
             <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Start writing..." className={`w-full bg-transparent text-lg text-text-primary placeholder:text-text-disabled outline-none resize-none min-h-[50vh] leading-relaxed ${selectedTypography === "serif" ? "font-poem" : selectedTypography === "editorial" ? "font-editorial" : "font-sans"}`} style={{ textAlign: selectedAlignment as "left" | "center" | "right" }} />
-
-            <div className="flex items-center gap-4 text-xs text-text-tertiary pt-4 border-t border-border-subtle">
-              <span>{wordCount} words</span>
-              <span>{charCount} characters</span>
-            </div>
           </div>
 
           {showCanvas && (
@@ -161,18 +186,6 @@ export default function WritePage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border-subtle px-4 py-2.5 z-40">
-        <div className="flex gap-1.5 overflow-x-auto">
-          {typographyOptions.map((opt) => (
-            <button key={opt.id} onClick={() => setSelectedTypography(opt.id)} className={`px-3 py-1.5 text-xs rounded-full border flex-shrink-0 transition-colors ${selectedTypography === opt.id ? "border-brand text-brand bg-brand-subtle" : "border-border-subtle text-text-tertiary"}`}>{opt.label}</button>
-          ))}
-          <span className="w-px bg-border-subtle flex-shrink-0 my-1" />
-          {alignmentOptions.map((opt) => (
-            <button key={opt.id} onClick={() => setSelectedAlignment(opt.id)} className={`px-3 py-1.5 text-xs rounded-full border flex-shrink-0 transition-colors ${selectedAlignment === opt.id ? "border-brand text-brand bg-brand-subtle" : "border-border-subtle text-text-tertiary"}`}>{opt.label}</button>
-          ))}
         </div>
       </div>
 

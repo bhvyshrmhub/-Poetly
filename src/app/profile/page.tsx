@@ -9,6 +9,7 @@ import PoemCard from "@/components/PoemCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -23,6 +24,8 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState<"poems" | "about">("poems");
   const [loading, setLoading] = useState(true);
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioDraft, setBioDraft] = useState("");
 
   const loadProfile = useCallback(async (p: Profile) => {
     setProfile(p);
@@ -58,7 +61,7 @@ export default function ProfilePage() {
         if (data) loadProfile(data as Profile);
         else setLoading(false);
       });
-    } else if (!user) {
+    } else if (!user && !username) {
       setLoading(false);
     }
   }, [username, user, myProfile, loadProfile]);
@@ -76,6 +79,19 @@ export default function ProfilePage() {
       setIsFollowing(true);
       setFollowerCount(followerCount + 1);
     }
+  };
+
+  const handleSaveBio = async () => {
+    if (!profile) return;
+    await supabase.from("profiles").update({ bio: bioDraft }).eq("id", profile.id);
+    setProfile({ ...profile, bio: bioDraft });
+    setEditingBio(false);
+  };
+
+  const handleDeletePoem = async (poemId: string) => {
+    if (!confirm("Delete this poem?")) return;
+    await supabase.from("poems").delete().eq("id", poemId);
+    setPoems(poems.filter((p) => p.id !== poemId));
   };
 
   if (loading) {
@@ -122,7 +138,23 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {profile.bio && <p className="text-sm text-text-secondary italic mb-4 max-w-md">&ldquo;{profile.bio}&rdquo;</p>}
+          {profile.bio && !editingBio && (
+            <p className="text-sm text-text-secondary italic mb-4 max-w-md">&ldquo;{profile.bio}&rdquo;</p>
+          )}
+          {isOwner && editingBio && (
+            <div className="mb-4">
+              <textarea value={bioDraft} onChange={(e) => setBioDraft(e.target.value)} placeholder="Write your bio..." className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-2 px-3 text-sm text-text-primary placeholder:text-text-tertiary resize-none" rows={2} />
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleSaveBio} className="text-xs font-medium text-brand hover:text-brand-hover transition-colors">Save</button>
+                <button onClick={() => setEditingBio(false)} className="text-xs text-text-tertiary hover:text-text-primary transition-colors">Cancel</button>
+              </div>
+            </div>
+          )}
+          {isOwner && !editingBio && (
+            <button onClick={() => { setEditingBio(true); setBioDraft(profile.bio || ""); }} className="text-xs text-text-tertiary hover:text-text-primary transition-colors mb-4 flex items-center gap-1">
+              <Pencil size={10} strokeWidth={1.5} /> Edit bio
+            </button>
+          )}
 
           <div className="flex gap-6 text-sm">
             <div><span className="font-medium text-text-primary">{poems.length}</span> <span className="text-text-tertiary">Poems</span></div>
@@ -138,7 +170,21 @@ export default function ProfilePage() {
         </div>
 
         {activeTab === "poems" ? (
-          poems.length > 0 ? poems.map((poem) => <PoemCard key={poem.id} poem={poem} />) : <p className="text-sm text-text-tertiary py-12 text-center">No poems yet.</p>
+          poems.length > 0 ? poems.map((poem) => (
+            <div key={poem.id} className="relative">
+              <PoemCard poem={poem} />
+              {isOwner && (
+                <div className="absolute top-3 right-3 flex gap-1">
+                  <button onClick={() => router.push(`/poem/${poem.id}/edit`)} className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors rounded-full hover:bg-surface-hover" title="Edit">
+                    <Pencil size={12} strokeWidth={1.5} />
+                  </button>
+                  <button onClick={() => handleDeletePoem(poem.id)} className="p-1.5 text-text-tertiary hover:text-error transition-colors rounded-full hover:bg-surface-hover" title="Delete">
+                    <Trash2 size={12} strokeWidth={1.5} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )) : <p className="text-sm text-text-tertiary py-12 text-center">No poems yet.</p>
         ) : (
           <div className="py-4">
             {profile.bio && <p className="font-poem text-lg text-text-primary italic mb-4">&ldquo;{profile.bio}&rdquo;</p>}

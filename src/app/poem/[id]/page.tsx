@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
 import Navbar from "@/components/Navbar";
+import Toast from "@/components/Toast";
 
 export default function PoemPage() {
   const params = useParams();
@@ -22,6 +23,9 @@ export default function PoemPage() {
   const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [responseCount, setResponseCount] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -40,6 +44,12 @@ export default function PoemPage() {
           .eq("poem_id", id);
         setLikeCount(count || 0);
 
+        const { count: resCount } = await supabase
+          .from("responses")
+          .select("*", { count: "exact", head: true })
+          .eq("original_id", id);
+        setResponseCount(resCount || 0);
+
         if (user) {
           const { data: like } = await supabase.from("likes").select("id").eq("user_id", user.id).eq("poem_id", id).single();
           setLiked(!!like);
@@ -57,6 +67,8 @@ export default function PoemPage() {
       setLoading(false);
     })();
   }, [id, user]);
+
+  const isAuthor = user && poem && user.id === poem.author_id;
 
   const handleLike = async () => {
     if (!user) return router.push("/login");
@@ -86,13 +98,22 @@ export default function PoemPage() {
     if (!user || !commentText.trim()) return;
     await supabase.from("comments").insert({ poem_id: id, author_id: user.id, content: commentText.trim() });
     setCommentText("");
-    // Re-fetch
     const { data: commentData } = await supabase
       .from("comments")
       .select("*, profiles!inner(*)")
       .eq("poem_id", id)
       .order("created_at", { ascending: true });
     setComments((commentData as CommentWithAuthor[]) || []);
+  };
+
+  const handleDelete = async () => {
+    if (!poem || !confirm("Delete this poem? This cannot be undone.")) return;
+    const { error } = await supabase.from("poems").delete().eq("id", poem.id);
+    if (!error) {
+      router.push("/home");
+    } else {
+      setToast("Failed to delete");
+    }
   };
 
   if (loading) {
@@ -141,6 +162,26 @@ export default function PoemPage() {
               </Link>
               <p className="text-xs text-text-tertiary">@{poem.profiles.username} · {new Date(poem.published_at || poem.created_at).toLocaleDateString()}</p>
             </div>
+            {isAuthor && (
+              <div className="ml-auto relative">
+                <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors rounded-full hover:bg-surface-hover">
+                  <MoreHorizontal size={16} strokeWidth={1.5} />
+                </button>
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border-subtle rounded-[var(--radius-md)] shadow-lg z-50 py-1 animate-fade-in">
+                      <button onClick={() => { setShowMenu(false); router.push(`/poem/${id}/edit`); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-text-primary hover:bg-surface-hover transition-colors">
+                        <Pencil size={13} strokeWidth={1.5} /> Edit
+                      </button>
+                      <button onClick={() => { setShowMenu(false); handleDelete(); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-error hover:bg-surface-hover transition-colors">
+                        <Trash2 size={13} strokeWidth={1.5} /> Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <h1 className="font-poem-title text-3xl md:text-[2.75rem] text-text-primary mb-10">{poem.title}</h1>
@@ -168,11 +209,16 @@ export default function PoemPage() {
             <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
               <Share2 size={17} strokeWidth={1.5} />
             </button>
+            {responseCount > 0 && (
+              <Link href={`/poem/${id}/responses`} className="flex items-center gap-2 text-sm text-brand hover:text-brand-hover transition-colors ml-auto">
+                {responseCount} {responseCount === 1 ? "response" : "responses"} →
+              </Link>
+            )}
           </div>
 
           <div className="text-center mb-10 py-6 bg-surface-secondary rounded-[var(--radius-lg)]">
             <p className="text-sm text-text-secondary mb-3">Not a comment. A poem.</p>
-            <Link href={`/poem/${poem.id}/respond`} className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity">
+            <Link href={`/poem/${id}/respond`} className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity">
               Respond with a poem
             </Link>
           </div>
@@ -208,6 +254,7 @@ export default function PoemPage() {
           </div>
         </div>
       </article>
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }
