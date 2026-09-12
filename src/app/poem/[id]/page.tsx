@@ -1,29 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
+import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
 
 export default function PoemPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
-  const { user } = useAuth();
 
   const [poem, setPoem] = useState<PoemWithAuthor | null>(null);
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
-  const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showMenu, setShowMenu] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [responseCount, setResponseCount] = useState(0);
 
@@ -50,13 +44,6 @@ export default function PoemPage() {
           .eq("original_id", id);
         setResponseCount(resCount || 0);
 
-        if (user) {
-          const { data: like } = await supabase.from("likes").select("id").eq("user_id", user.id).eq("poem_id", id).single();
-          setLiked(!!like);
-          const { data: save } = await supabase.from("saves").select("id").eq("user_id", user.id).eq("poem_id", id).single();
-          setSaved(!!save);
-        }
-
         const { data: commentData } = await supabase
           .from("comments")
           .select("*, profiles!inner(*)")
@@ -66,37 +53,16 @@ export default function PoemPage() {
       }
       setLoading(false);
     })();
-  }, [id, user]);
-
-  const isAuthor = user && poem && user.id === poem.author_id;
+  }, [id]);
 
   const handleLike = async () => {
-    if (!user) return router.push("/login");
-    if (liked) {
-      await supabase.from("likes").delete().eq("user_id", user.id).eq("poem_id", id);
-      setLiked(false);
-      setLikeCount(likeCount - 1);
-    } else {
-      await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
-      setLiked(true);
-      setLikeCount(likeCount + 1);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user) return router.push("/login");
-    if (saved) {
-      await supabase.from("saves").delete().eq("user_id", user.id).eq("poem_id", id);
-      setSaved(false);
-    } else {
-      await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
-      setSaved(true);
-    }
+    await supabase.from("likes").insert({ user_id: "00000000-0000-0000-0000-000000000000", poem_id: id });
+    setLikeCount(likeCount + 1);
   };
 
   const handleComment = async () => {
-    if (!user || !commentText.trim()) return;
-    await supabase.from("comments").insert({ poem_id: id, author_id: user.id, content: commentText.trim() });
+    if (!commentText.trim()) return;
+    await supabase.from("comments").insert({ poem_id: id, author_id: "00000000-0000-0000-0000-000000000000", content: commentText.trim() });
     setCommentText("");
     const { data: commentData } = await supabase
       .from("comments")
@@ -104,16 +70,6 @@ export default function PoemPage() {
       .eq("poem_id", id)
       .order("created_at", { ascending: true });
     setComments((commentData as CommentWithAuthor[]) || []);
-  };
-
-  const handleDelete = async () => {
-    if (!poem || !confirm("Delete this poem? This cannot be undone.")) return;
-    const { error } = await supabase.from("poems").delete().eq("id", poem.id);
-    if (!error) {
-      router.push("/home");
-    } else {
-      setToast("Failed to delete");
-    }
   };
 
   if (loading) {
@@ -162,26 +118,6 @@ export default function PoemPage() {
               </Link>
               <p className="text-xs text-text-tertiary">@{poem.profiles.username} · {new Date(poem.published_at || poem.created_at).toLocaleDateString()}</p>
             </div>
-            {isAuthor && (
-              <div className="ml-auto relative">
-                <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors rounded-full hover:bg-surface-hover">
-                  <MoreHorizontal size={16} strokeWidth={1.5} />
-                </button>
-                {showMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                    <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border-subtle rounded-[var(--radius-md)] shadow-lg z-50 py-1 animate-fade-in">
-                      <button onClick={() => { setShowMenu(false); router.push(`/poem/${id}/edit`); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-text-primary hover:bg-surface-hover transition-colors">
-                        <Pencil size={13} strokeWidth={1.5} /> Edit
-                      </button>
-                      <button onClick={() => { setShowMenu(false); handleDelete(); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-error hover:bg-surface-hover transition-colors">
-                        <Trash2 size={13} strokeWidth={1.5} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           <h1 className="font-poem-title text-3xl md:text-[2.75rem] text-text-primary mb-10">{poem.title}</h1>
@@ -196,15 +132,15 @@ export default function PoemPage() {
           )}
 
           <div className="flex items-center gap-5 py-5 border-y border-border-subtle mb-8">
-            <button onClick={handleLike} className={`flex items-center gap-2 text-sm transition-all duration-150 ${liked ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
-              <Heart size={17} strokeWidth={1.5} fill={liked ? "currentColor" : "none"} className={liked ? "animate-like-pop" : ""} />
+            <button onClick={handleLike} className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-all duration-150">
+              <Heart size={17} strokeWidth={1.5} />
               <span>{likeCount}</span>
             </button>
             <span className="flex items-center gap-2 text-sm text-text-tertiary">
               <MessageCircle size={17} strokeWidth={1.5} /><span>{comments.length}</span>
             </span>
-            <button onClick={handleSave} className={`flex items-center gap-2 text-sm transition-all duration-150 ${saved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
-              <Bookmark size={17} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
+            <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
+              <Bookmark size={17} strokeWidth={1.5} />
             </button>
             <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
               <Share2 size={17} strokeWidth={1.5} />
@@ -225,16 +161,12 @@ export default function PoemPage() {
 
           <div className="mt-12 pt-8 border-t border-border-subtle">
             <h3 className="font-poem text-lg font-medium text-text-primary mb-6">Leave a note</h3>
-            {user ? (
-              <div className="mb-8">
-                <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a note..." className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-3 px-4 text-sm text-text-primary placeholder:text-text-tertiary resize-none" rows={2} />
-                <div className="flex justify-end mt-2">
-                  <button onClick={handleComment} disabled={!commentText.trim()} className="text-xs font-medium text-brand hover:text-brand-hover transition-colors px-3 py-1 disabled:opacity-30">Post</button>
-                </div>
+            <div className="mb-8">
+              <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a note..." className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-3 px-4 text-sm text-text-primary placeholder:text-text-tertiary resize-none" rows={2} />
+              <div className="flex justify-end mt-2">
+                <button onClick={handleComment} disabled={!commentText.trim()} className="text-xs font-medium text-brand hover:text-brand-hover transition-colors px-3 py-1 disabled:opacity-30">Post</button>
               </div>
-            ) : (
-              <p className="text-sm text-text-tertiary mb-6"><Link href="/login" className="text-brand hover:text-brand-hover">Log in</Link> to leave a note.</p>
-            )}
+            </div>
             <div className="space-y-5">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">

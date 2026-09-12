@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { PoemWithAuthor } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
@@ -14,7 +13,6 @@ export default function RespondPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { user } = useAuth();
 
   const [originalPoem, setOriginalPoem] = useState<PoemWithAuthor | null>(null);
   const [title, setTitle] = useState("");
@@ -35,7 +33,6 @@ export default function RespondPage() {
   }, [id]);
 
   const handlePublish = async () => {
-    if (!user) return router.push("/login");
     if (!content.trim()) {
       setToast("Write your response first");
       return;
@@ -44,7 +41,7 @@ export default function RespondPage() {
     const { data, error } = await supabase
       .from("poems")
       .insert({
-        author_id: user.id,
+        author_id: "00000000-0000-0000-0000-000000000000",
         title: title || "Response",
         content,
         response_to: id,
@@ -58,7 +55,7 @@ export default function RespondPage() {
       await supabase.from("responses").insert({
         original_poem_id: id,
         response_poem_id: data.id,
-        author_id: user.id,
+        author_id: "00000000-0000-0000-0000-000000000000",
       });
       router.push(`/poem/${data.id}`);
     } else {

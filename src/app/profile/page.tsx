@@ -1,31 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Profile, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
-import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
 
 export default function ProfilePage() {
   const params = useParams();
-  const router = useRouter();
-  const { user, profile: myProfile, signOut } = useAuth();
   const username = params.username as string;
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState<"poems" | "about">("poems");
   const [loading, setLoading] = useState(true);
-  const [editingBio, setEditingBio] = useState(false);
-  const [bioDraft, setBioDraft] = useState("");
 
   const loadProfile = useCallback(async (p: Profile) => {
     setProfile(p);
@@ -45,54 +37,19 @@ export default function ProfilePage() {
     const { count: fgc } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id);
     setFollowingCount(fgc || 0);
 
-    if (user && user.id !== p.id) {
-      const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", p.id).single();
-      setIsFollowing(!!f);
-    }
-
     setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    if (!username && user && myProfile) {
-      loadProfile(myProfile);
-    } else if (username) {
+    if (username) {
       supabase.from("profiles").select("*").eq("username", username).single().then(({ data }) => {
         if (data) loadProfile(data as Profile);
         else setLoading(false);
       });
-    } else if (!user && !username) {
+    } else {
       setLoading(false);
     }
-  }, [username, user, myProfile, loadProfile]);
-
-  const handleFollow = async () => {
-    if (!user) return router.push("/login");
-    if (!profile) return;
-
-    if (isFollowing) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", profile.id);
-      setIsFollowing(false);
-      setFollowerCount(followerCount - 1);
-    } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
-      setIsFollowing(true);
-      setFollowerCount(followerCount + 1);
-    }
-  };
-
-  const handleSaveBio = async () => {
-    if (!profile) return;
-    await supabase.from("profiles").update({ bio: bioDraft }).eq("id", profile.id);
-    setProfile({ ...profile, bio: bioDraft });
-    setEditingBio(false);
-  };
-
-  const handleDeletePoem = async (poemId: string) => {
-    if (!confirm("Delete this poem?")) return;
-    await supabase.from("poems").delete().eq("id", poemId);
-    setPoems(poems.filter((p) => p.id !== poemId));
-  };
+  }, [username, loadProfile]);
 
   if (loading) {
     return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-20 h-20 skeleton rounded-[var(--radius-md)] mb-5" /></div></div>;
@@ -101,8 +58,6 @@ export default function ProfilePage() {
   if (!profile) {
     return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Profile not found.</p></div></div>;
   }
-
-  const isOwner = user?.id === profile.id;
 
   return (
     <div className="min-h-screen">
@@ -119,41 +74,13 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="font-poem text-xl font-medium text-text-primary">{profile.display_name}</h1>
-                  <p className="text-sm text-text-tertiary">@{profile.username}</p>
-                </div>
-                {isOwner ? (
-                  <div className="flex gap-2">
-                    <Link href="/settings" className="text-xs px-3 py-1.5 rounded-full border border-border-subtle text-text-secondary hover:text-text-primary transition-colors">Edit</Link>
-                    <button onClick={signOut} className="text-xs px-3 py-1.5 rounded-full border border-border-subtle text-text-secondary hover:text-text-primary transition-colors">Log out</button>
-                  </div>
-                ) : (
-                  <button onClick={handleFollow} className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all duration-150 ${isFollowing ? "bg-text-primary text-background hover:bg-text-primary/90" : "bg-brand text-white hover:bg-brand-hover"}`}>
-                    {isFollowing ? "Following" : "Follow"}
-                  </button>
-                )}
-              </div>
+              <h1 className="font-poem text-xl font-medium text-text-primary">{profile.display_name}</h1>
+              <p className="text-sm text-text-tertiary">@{profile.username}</p>
             </div>
           </div>
 
-          {profile.bio && !editingBio && (
+          {profile.bio && (
             <p className="text-sm text-text-secondary italic mb-4 max-w-md">&ldquo;{profile.bio}&rdquo;</p>
-          )}
-          {isOwner && editingBio && (
-            <div className="mb-4">
-              <textarea value={bioDraft} onChange={(e) => setBioDraft(e.target.value)} placeholder="Write your bio..." className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-2 px-3 text-sm text-text-primary placeholder:text-text-tertiary resize-none" rows={2} />
-              <div className="flex gap-2 mt-2">
-                <button onClick={handleSaveBio} className="text-xs font-medium text-brand hover:text-brand-hover transition-colors">Save</button>
-                <button onClick={() => setEditingBio(false)} className="text-xs text-text-tertiary hover:text-text-primary transition-colors">Cancel</button>
-              </div>
-            </div>
-          )}
-          {isOwner && !editingBio && (
-            <button onClick={() => { setEditingBio(true); setBioDraft(profile.bio || ""); }} className="text-xs text-text-tertiary hover:text-text-primary transition-colors mb-4 flex items-center gap-1">
-              <Pencil size={10} strokeWidth={1.5} /> Edit bio
-            </button>
           )}
 
           <div className="flex gap-6 text-sm">
@@ -170,21 +97,7 @@ export default function ProfilePage() {
         </div>
 
         {activeTab === "poems" ? (
-          poems.length > 0 ? poems.map((poem) => (
-            <div key={poem.id} className="relative">
-              <PoemCard poem={poem} />
-              {isOwner && (
-                <div className="absolute top-3 right-3 flex gap-1">
-                  <button onClick={() => router.push(`/poem/${poem.id}/edit`)} className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors rounded-full hover:bg-surface-hover" title="Edit">
-                    <Pencil size={12} strokeWidth={1.5} />
-                  </button>
-                  <button onClick={() => handleDeletePoem(poem.id)} className="p-1.5 text-text-tertiary hover:text-error transition-colors rounded-full hover:bg-surface-hover" title="Delete">
-                    <Trash2 size={12} strokeWidth={1.5} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )) : <p className="text-sm text-text-tertiary py-12 text-center">No poems yet.</p>
+          poems.length > 0 ? poems.map((poem) => <PoemCard key={poem.id} poem={poem} />) : <p className="text-sm text-text-tertiary py-12 text-center">No poems yet.</p>
         ) : (
           <div className="py-4">
             {profile.bio && <p className="font-poem text-lg text-text-primary italic mb-4">&ldquo;{profile.bio}&rdquo;</p>}

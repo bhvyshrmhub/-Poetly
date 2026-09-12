@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Palette, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import Navbar from "@/components/Navbar";
@@ -35,7 +34,6 @@ const moodOptions = [
 export default function EditPoemPage() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
   const poemId = params.id as string;
 
   const [poem, setPoem] = useState<Poem | null>(null);
@@ -63,11 +61,6 @@ export default function EditPoemPage() {
           router.push("/home");
           return;
         }
-        if (data.author_id !== user?.id) {
-          setToast("Not authorized");
-          router.push(`/poem/${poemId}`);
-          return;
-        }
         setPoem(data);
         setTitle(data.title || "");
         setContent(data.content);
@@ -75,7 +68,7 @@ export default function EditPoemPage() {
         setTags(data.tags?.join(", ") || "");
         setLoading(false);
       });
-  }, [poemId, user?.id, router]);
+  }, [poemId, router]);
 
   const handleSave = async () => {
     if (!poem || !content.trim()) {

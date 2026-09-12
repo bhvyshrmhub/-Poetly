@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
@@ -31,7 +30,6 @@ const moodOptions = [
 
 export default function WritePage() {
   const router = useRouter();
-  const { user, isGuest } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTypography, setSelectedTypography] = useState("serif");
@@ -46,11 +44,11 @@ export default function WritePage() {
   const charCount = content.length;
 
   const handleSaveDraft = async () => {
-    if (!user || (!title.trim() && !content.trim())) return;
+    if (!title.trim() && !content.trim()) return;
     setSaving(true);
 
     const { error } = await supabase.from("poems").insert({
-      author_id: user.id,
+      author_id: "00000000-0000-0000-0000-000000000000",
       title: title || "Untitled",
       content,
       mood: selectedMood,
@@ -68,15 +66,10 @@ export default function WritePage() {
       return;
     }
 
-    if (isGuest) {
-      setToast("Sign in to publish poems");
-      return;
-    }
-
     const { data, error } = await supabase
       .from("poems")
       .insert({
-        author_id: user!.id,
+        author_id: "00000000-0000-0000-0000-000000000000",
         title: title || "Untitled",
         content,
         mood: selectedMood,
@@ -103,7 +96,7 @@ export default function WritePage() {
             <ArrowLeft size={14} strokeWidth={1.5} /> Back
           </Link>
           <div className="flex items-center gap-2">
-            <button onClick={handleSaveDraft} disabled={saving || isGuest} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-full border border-border-subtle hover:border-border-default disabled:opacity-50">
+            <button onClick={handleSaveDraft} disabled={saving} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-full border border-border-subtle hover:border-border-default disabled:opacity-50">
               <Save size={12} strokeWidth={1.5} />
               <span className="hidden sm:inline">{saving ? "Saving..." : "Save Draft"}</span>
             </button>

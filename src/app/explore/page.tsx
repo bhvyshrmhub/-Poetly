@@ -111,9 +111,7 @@ export default function ExplorePage() {
           ) : (
             <div className="text-center py-16">
               <p className="font-poem text-xl text-text-tertiary italic mb-2">Discover writers coming soon.</p>
-              <p className="text-sm text-text-tertiary">
-                <Link href="/login" className="text-brand hover:text-brand-hover">Join</Link> to find and follow poets.
-              </p>
+              <p className="text-sm text-text-tertiary">Browse poets and their work.</p>
             </div>
           )}
         </section>

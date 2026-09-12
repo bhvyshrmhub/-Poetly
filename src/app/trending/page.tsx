@@ -1,16 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
-
 export default function TrendingPage() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"trending" | "mostLoved" | "rising">("trending");
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,23 +18,13 @@ export default function TrendingPage() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     if (activeTab === "rising") {
-      const { data: follows } = user
-        ? await supabase.from("follows").select("following_id").eq("follower_id", user.id)
-        : { data: [] };
-      const followedIds = follows?.map((f) => f.following_id) || [];
-
-      let query = supabase
+      const { data } = await supabase
         .from("poems")
         .select("*, profiles!inner(*)")
         .eq("status", "published")
         .eq("visibility", "public")
-        .order("created_at", { ascending: false });
-
-      if (followedIds.length > 0) {
-        query = query.not("author_id", "in", `(${followedIds.join(",")})`);
-      }
-
-      const { data } = await query.limit(10);
+        .order("created_at", { ascending: false })
+        .limit(10);
       setPoems((data as PoemWithAuthor[]) || []);
     } else {
       const { data: likesData } = await supabase
@@ -73,7 +60,7 @@ export default function TrendingPage() {
       }
     }
     setLoading(false);
-  }, [activeTab, user]);
+  }, [activeTab]);
 
   useEffect(() => {
     fetchPoems();

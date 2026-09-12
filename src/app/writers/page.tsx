@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { WriterWithStats } from "@/lib/types";
 import WriterCard from "@/components/WriterCard";
@@ -9,17 +8,12 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function WritersPage() {
-  const { user } = useAuth();
   const [writers, setWriters] = useState<WriterWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchWriters = useCallback(async () => {
     setLoading(true);
-    const { data: follows } = user
-      ? await supabase.from("follows").select("following_id").eq("follower_id", user.id)
-      : { data: [] };
-    const followedIds = follows?.map((f) => f.following_id) || [];
 
     let query = supabase
       .from("profiles")
@@ -41,13 +35,13 @@ export default function WritersPage() {
             supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id),
             supabase.from("poems").select("*", { count: "exact", head: true }).eq("author_id", p.id).eq("status", "published"),
           ]);
-          return { ...p, followerCount: followers || 0, followingCount: following || 0, poemCount: poems || 0, isFollowed: followedIds.includes(p.id) };
+          return { ...p, followerCount: followers || 0, followingCount: following || 0, poemCount: poems || 0, isFollowed: false };
         })
       );
       setWriters(writersWithStats);
     }
     setLoading(false);
-  }, [user, searchQuery]);
+  }, [searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(fetchWriters, 300);

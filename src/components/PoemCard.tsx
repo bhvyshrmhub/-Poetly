@@ -5,7 +5,6 @@ import { PoemWithAuthor } from "@/lib/types";
 import { Heart, MessageCircle, Bookmark } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 
 interface PoemCardProps {
   poem: PoemWithAuthor;
@@ -13,48 +12,11 @@ interface PoemCardProps {
 }
 
 export default function PoemCard({ poem, variant = "default" }: PoemCardProps) {
-  const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase.from("likes").select("id").eq("user_id", user.id).eq("poem_id", poem.id).single().then(({ data }) => setLiked(!!data));
-    supabase.from("saves").select("id").eq("user_id", user.id).eq("poem_id", poem.id).single().then(({ data }) => setSaved(!!data));
-  }, [user, poem.id]);
 
   useEffect(() => {
     supabase.from("likes").select("*", { count: "exact", head: true }).eq("poem_id", poem.id).then(({ count }) => setLikeCount(count || 0));
   }, [poem.id]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) return;
-    if (liked) {
-      await supabase.from("likes").delete().eq("user_id", user.id).eq("poem_id", poem.id);
-      setLiked(false);
-      setLikeCount(Math.max(0, likeCount - 1));
-    } else {
-      await supabase.from("likes").insert({ user_id: user.id, poem_id: poem.id });
-      setLiked(true);
-      setLikeCount(likeCount + 1);
-    }
-  };
-
-  const handleSave = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) return;
-    if (saved) {
-      await supabase.from("saves").delete().eq("user_id", user.id).eq("poem_id", poem.id);
-      setSaved(false);
-    } else {
-      await supabase.from("saves").insert({ user_id: user.id, poem_id: poem.id });
-      setSaved(true);
-    }
-  };
 
   const preview = poem.content.split("\n").slice(0, 4).join("\n");
   const author = poem.profiles;
@@ -96,16 +58,16 @@ export default function PoemCard({ poem, variant = "default" }: PoemCardProps) {
         </div>
 
         <div className="flex items-center gap-5">
-          <button onClick={handleLike} className={`flex items-center gap-1.5 text-xs transition-all duration-150 ${liked ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
-            <Heart size={15} strokeWidth={1.5} fill={liked ? "currentColor" : "none"} className={liked ? "animate-like-pop" : ""} />
+          <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
+            <Heart size={15} strokeWidth={1.5} />
             <span>{likeCount}</span>
-          </button>
+          </span>
           <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
             <MessageCircle size={15} strokeWidth={1.5} />
           </span>
-          <button onClick={handleSave} className={`flex items-center gap-1.5 text-xs transition-all duration-150 ${saved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
-            <Bookmark size={15} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
-          </button>
+          <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
+            <Bookmark size={15} strokeWidth={1.5} />
+          </span>
         </div>
       </article>
     </Link>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
@@ -10,47 +9,23 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function HomePage() {
-  const { profile, isGuest } = useAuth();
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"forYou" | "following">("forYou");
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      if (activeTab === "following" && !isGuest) {
-        const { data: follows } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", profile?.id || "");
-        const followedIds = follows?.map((f) => f.following_id) || [];
-        if (followedIds.length === 0) {
-          setPoems([]);
-          setLoading(false);
-          return;
-        }
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .in("author_id", followedIds)
-          .order("published_at", { ascending: false })
-          .limit(20);
-        setPoems((data as PoemWithAuthor[]) || []);
-      } else {
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .order("published_at", { ascending: false })
-          .limit(20);
-        setPoems((data as PoemWithAuthor[]) || []);
-      }
+      const { data } = await supabase
+        .from("poems")
+        .select("*, profiles!inner(*)")
+        .eq("status", "published")
+        .eq("visibility", "public")
+        .order("published_at", { ascending: false })
+        .limit(20);
+      setPoems((data as PoemWithAuthor[]) || []);
       setLoading(false);
     })();
-  }, [activeTab, isGuest, profile?.id]);
+  }, []);
 
   const hour = new Date().getHours();
   let greeting = "Good evening.";
@@ -63,9 +38,7 @@ export default function HomePage() {
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-8 animate-fade-in">
           <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">{greeting}</h1>
-          <p className="text-sm text-text-secondary">
-            {isGuest ? "Explore the world of poetry on Poetly." : `Welcome, ${profile?.display_name}.`}
-          </p>
+          <p className="text-sm text-text-secondary">Explore the world of poetry on Poetly.</p>
         </div>
 
         <Link
@@ -73,27 +46,10 @@ export default function HomePage() {
           className="flex items-center gap-3 w-full px-4 py-3 bg-surface border border-border-subtle rounded-[var(--radius-md)] text-text-tertiary hover:border-brand/30 hover:bg-surface-hover transition-all mb-8"
         >
           <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center flex-shrink-0">
-            <span className="text-brand text-xs font-display">{profile?.display_name?.[0] || "P"}</span>
+            <span className="text-brand text-xs font-display">P</span>
           </div>
           <span className="text-sm">Write a poem...</span>
         </Link>
-
-        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
-          {[
-            { id: "forYou" as const, label: "For You" },
-            ...(isGuest ? [] : [{ id: "following" as const, label: "Following" }]),
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                activeTab === tab.id ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
         <section className="mb-12">
           {loading ? (
@@ -117,11 +73,9 @@ export default function HomePage() {
           ) : (
             <div className="text-center py-16">
               <p className="font-poem text-xl text-text-tertiary italic mb-2">
-                {activeTab === "following" ? "Follow some writers to see their poems here." : "Poetly is waiting for its first words."}
+                Poetly is waiting for its first words.
               </p>
-              <p className="text-sm text-text-tertiary">
-                {activeTab === "following" ? "Discover writers in Trending." : "Be the first to publish a poem."}
-              </p>
+              <p className="text-sm text-text-tertiary">Be the first to publish a poem.</p>
             </div>
           )}
         </section>
