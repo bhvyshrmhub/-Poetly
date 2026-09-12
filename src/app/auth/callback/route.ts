@@ -8,14 +8,18 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  // Handle OAuth errors
   if (error) {
     const errorMessage = errorDescription || error;
-    const errorUrl = origin + `/login?error=${encodeURIComponent(errorMessage)}`;
-    return NextResponse.redirect(errorUrl);
+    const loginUrl = new URL("/login", origin);
+    loginUrl.searchParams.set("error", errorMessage);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (code) {
+    const cookieMap = new Map<string, string>();
+
+    let supabaseResponse = NextResponse.next({ request });
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,8 +29,13 @@ export async function GET(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
+            cookiesToSet.forEach(({ name, value }) => {
+              request.cookies.set(name, value);
+              cookieMap.set(name, value);
+            });
+            supabaseResponse = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
             );
           },
         },
@@ -36,33 +45,33 @@ export async function GET(request: NextRequest) {
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!exchangeError && data.session) {
-      // Check if profile exists
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
         .eq("id", data.session.user.id)
         .single();
 
-      const response = NextResponse.redirect(origin + (profile ? next : "/profile/setup"));
+      const redirectUrl = new URL(profile ? next : "/profile/setup", origin);
 
-      // Set auth cookies
-      response.cookies.set("sb-access-token", data.session.access_token, {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7,
-        sameSite: "lax",
-        secure: true,
-      });
-      response.cookies.set("sb-refresh-token", data.session.refresh_token, {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-        sameSite: "lax",
-        secure: true,
+      const response = NextResponse.redirect(redirectUrl);
+      cookieMap.forEach((value, name) => {
+        response.cookies.set(name, value, {
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+          sameSite: "lax",
+          secure: true,
+        });
       });
 
       return response;
     }
+
+    const errorUrl = new URL("/login", origin);
+    errorUrl.searchParams.set("error", "Authentication failed");
+    return NextResponse.redirect(errorUrl);
   }
 
-  // Return to login with error if something went wrong
-  return NextResponse.redirect(origin + "/login?error=Authentication+failed");
+  const errorUrl = new URL("/login", origin);
+  errorUrl.searchParams.set("error", "No authorization code received");
+  return NextResponse.redirect(errorUrl);
 }
