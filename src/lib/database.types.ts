@@ -18,6 +18,7 @@ export interface Database {
           profile_image: string | null;
           website: string | null;
           location: string | null;
+          status: "active" | "suspended" | "banned";
           created_at: string;
           updated_at: string;
         };
@@ -29,6 +30,7 @@ export interface Database {
           profile_image?: string | null;
           website?: string | null;
           location?: string | null;
+          status?: "active" | "suspended" | "banned";
           created_at?: string;
           updated_at?: string;
         };
@@ -40,6 +42,7 @@ export interface Database {
           profile_image?: string | null;
           website?: string | null;
           location?: string | null;
+          status?: "active" | "suspended" | "banned";
           created_at?: string;
           updated_at?: string;
         };
@@ -54,7 +57,7 @@ export interface Database {
           tags: string[] | null;
           image_url: string | null;
           visibility: "public" | "private" | "unlisted";
-          status: "draft" | "published" | "archived";
+          status: "draft" | "published" | "archived" | "hidden" | "removed";
           response_to: string | null;
           prompt_id: string | null;
           created_at: string;
@@ -70,7 +73,7 @@ export interface Database {
           tags?: string[] | null;
           image_url?: string | null;
           visibility?: "public" | "private" | "unlisted";
-          status?: "draft" | "published" | "archived";
+          status?: "draft" | "published" | "archived" | "hidden" | "removed";
           response_to?: string | null;
           prompt_id?: string | null;
           created_at?: string;
@@ -86,7 +89,7 @@ export interface Database {
           tags?: string[] | null;
           image_url?: string | null;
           visibility?: "public" | "private" | "unlisted";
-          status?: "draft" | "published" | "archived";
+          status?: "draft" | "published" | "archived" | "hidden" | "removed";
           response_to?: string | null;
           prompt_id?: string | null;
           created_at?: string;
@@ -308,7 +311,11 @@ export interface Database {
           target_type: "poem" | "comment" | "user";
           target_id: string;
           reason: string;
-          status: "pending" | "reviewed" | "resolved" | "rejected";
+          report_category: string | null;
+          status: "pending" | "reviewed" | "resolved" | "dismissed";
+          admin_note: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -317,7 +324,11 @@ export interface Database {
           target_type: "poem" | "comment" | "user";
           target_id: string;
           reason: string;
+          report_category?: string | null;
           status?: "pending";
+          admin_note?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -326,7 +337,83 @@ export interface Database {
           target_type?: "poem" | "comment" | "user";
           target_id?: string;
           reason?: string;
-          status?: "pending" | "reviewed" | "resolved" | "rejected";
+          report_category?: string | null;
+          status?: "pending" | "reviewed" | "resolved" | "dismissed";
+          admin_note?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+        };
+      };
+      admin_users: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "admin" | "moderator";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role?: "admin" | "moderator";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: "admin" | "moderator";
+          created_at?: string;
+        };
+      };
+      featured_content: {
+        Row: {
+          id: string;
+          content_type: "poem" | "prompt" | "collection";
+          content_id: string;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          content_type: "poem" | "prompt" | "collection";
+          content_id: string;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          content_type?: "poem" | "prompt" | "collection";
+          content_id?: string;
+          position?: number;
+          created_at?: string;
+        };
+      };
+      admin_activity_log: {
+        Row: {
+          id: string;
+          admin_id: string;
+          action: string;
+          target_type: string | null;
+          target_id: string | null;
+          details: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id: string;
+          action: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          details?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string;
+          action?: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          details?: string | null;
           created_at?: string;
         };
       };
