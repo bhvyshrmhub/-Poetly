@@ -27,7 +27,15 @@ export type CollectionPoem = Database["public"]["Tables"]["collection_poems"]["R
 
 export type Response = Database["public"]["Tables"]["responses"]["Row"];
 
-export type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
+export type Prompt = Database["public"]["Tables"]["prompts"]["Row"] & {
+  prompt_text?: string | null;
+  image_url?: string | null;
+  mood?: string | null;
+  tags?: string[] | null;
+  status?: "upcoming" | "active" | "ended";
+  start_date?: string | null;
+  end_date?: string | null;
+};
 
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 

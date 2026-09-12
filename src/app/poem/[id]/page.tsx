@@ -152,11 +152,16 @@ export default function PoemPage() {
             )}
           </div>
 
-          <div className="text-center mb-10 py-6 bg-surface-secondary rounded-[var(--radius-lg)]">
-            <p className="text-sm text-text-secondary mb-3">Not a comment. A poem.</p>
-            <Link href={`/poem/${id}/respond`} className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity">
-              Respond with a poem
-            </Link>
+          <div className="text-center mb-10 py-6 bg-surface-secondary rounded-[var(--radius-lg)] space-y-3">
+            <p className="text-sm text-text-secondary">Not a comment. A poem.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href={`/poem/${id}/respond`} className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity">
+                Respond with a poem
+              </Link>
+              <Link href={`/poem/${id}/canvas`} className="inline-flex items-center justify-center px-5 py-2.5 border border-border-default text-text-primary text-sm font-medium rounded-[var(--radius-full)] hover:border-brand hover:text-brand transition-colors">
+                Create Canvas
+              </Link>
+            </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-border-subtle">

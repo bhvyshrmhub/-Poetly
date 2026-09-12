@@ -3,26 +3,36 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { PoemWithAuthor } from "@/lib/types";
+import { PoemWithAuthor, Prompt } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 
 export default function HomePage() {
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
+  const [activePrompt, setActivePrompt] = useState<Prompt | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("poems")
-        .select("*, profiles!inner(*)")
-        .eq("status", "published")
-        .eq("visibility", "public")
-        .order("published_at", { ascending: false })
-        .limit(20);
-      setPoems((data as PoemWithAuthor[]) || []);
+      const [poemsRes, promptRes] = await Promise.all([
+        supabase
+          .from("poems")
+          .select("*, profiles!inner(*)")
+          .eq("status", "published")
+          .eq("visibility", "public")
+          .order("published_at", { ascending: false })
+          .limit(20),
+        supabase
+          .from("prompts")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+      setPoems((poemsRes.data as PoemWithAuthor[]) || []);
+      setActivePrompt((promptRes.data?.[0] as Prompt) || null);
       setLoading(false);
     })();
   }, []);
@@ -50,6 +60,14 @@ export default function HomePage() {
           </div>
           <span className="text-sm">Write a poem...</span>
         </Link>
+
+        {activePrompt && (
+          <Link href={`/prompts/${activePrompt.id}`} className="block mb-8 px-4 py-4 bg-surface border border-border-subtle rounded-[var(--radius-md)] hover:border-brand/30 hover:bg-surface-hover transition-all animate-fade-in">
+            <p className="text-[10px] font-medium text-brand tracking-widest uppercase mb-1">Today&apos;s Prompt</p>
+            <p className="font-poem-title text-lg text-text-primary italic">&ldquo;{activePrompt.title}&rdquo;</p>
+            {activePrompt.description && <p className="text-sm text-text-secondary mt-1 line-clamp-1">{activePrompt.description}</p>}
+          </Link>
+        )}
 
         <section className="mb-12">
           {loading ? (

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+"use client";
+
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -29,7 +31,17 @@ const moodOptions = [
 ];
 
 export default function WritePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen"><Navbar /></div>}>
+      <WritePageInner />
+    </Suspense>
+  );
+}
+
+function WritePageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const promptId = searchParams.get("prompt");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTypography, setSelectedTypography] = useState("serif");
@@ -54,6 +66,7 @@ export default function WritePage() {
       mood: selectedMood,
       tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
       status: "draft",
+      prompt_id: promptId,
     });
 
     setSaving(false);
@@ -76,6 +89,7 @@ export default function WritePage() {
         tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
         status: "published",
         published_at: new Date().toISOString(),
+        prompt_id: promptId,
       })
       .select()
       .single();

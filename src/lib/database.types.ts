@@ -56,6 +56,7 @@ export interface Database {
           visibility: "public" | "private" | "unlisted";
           status: "draft" | "published" | "archived";
           response_to: string | null;
+          prompt_id: string | null;
           created_at: string;
           updated_at: string;
           published_at: string | null;
@@ -71,6 +72,7 @@ export interface Database {
           visibility?: "public" | "private" | "unlisted";
           status?: "draft" | "published" | "archived";
           response_to?: string | null;
+          prompt_id?: string | null;
           created_at?: string;
           updated_at?: string;
           published_at?: string | null;
@@ -86,6 +88,7 @@ export interface Database {
           visibility?: "public" | "private" | "unlisted";
           status?: "draft" | "published" | "archived";
           response_to?: string | null;
+          prompt_id?: string | null;
           created_at?: string;
           updated_at?: string;
           published_at?: string | null;
