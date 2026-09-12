@@ -9,6 +9,7 @@ import { Prompt, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
+import Toast from "@/components/Toast";
 
 export default function PromptDetailPage() {
   const params = useParams();
@@ -16,20 +17,26 @@ export default function PromptDetailPage() {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: promptData } = await supabase.from("prompts").select("*").eq("id", id).single();
-    setPrompt(promptData as Prompt);
+    try {
+      const { data: promptData } = await supabase.from("prompts").select("*").eq("id", id).single();
+      setPrompt(promptData as Prompt);
 
-    if (promptData) {
-      const { data: poemData } = await supabase
-        .from("poems")
-        .select("*, profiles!inner(*)")
-        .eq("prompt_id", id)
-        .order("created_at", { ascending: false });
-      setPoems((poemData as PoemWithAuthor[]) || []);
+      if (promptData) {
+        const { data: poemData } = await supabase
+          .from("poems")
+          .select("*, profiles!inner(*)")
+          .eq("prompt_id", id)
+          .order("created_at", { ascending: false });
+        setPoems((poemData as PoemWithAuthor[]) || []);
+      }
+    } catch {
+      setToast("Failed to load prompt");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -93,6 +100,7 @@ export default function PromptDetailPage() {
         </div>
       </main>
       <MobileNav />
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

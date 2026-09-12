@@ -22,26 +22,31 @@ export default function SearchPage() {
     }
     const timer = setTimeout(async () => {
       setLoading(true);
-      const q = query.trim();
-      if (activeTab === "poems") {
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
-          .order("published_at", { ascending: false })
-          .limit(20);
-        setPoems((data as PoemWithAuthor[]) || []);
-      } else {
-        const { data } = await supabase
-          .from("profiles")
-          .select("*")
-          .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-          .limit(20);
-        setWriters((data as Profile[]) || []);
+      try {
+        const q = query.trim();
+        if (activeTab === "poems") {
+          const { data } = await supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .eq("status", "published")
+            .eq("visibility", "public")
+            .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
+            .order("published_at", { ascending: false })
+            .limit(20);
+          setPoems((data as PoemWithAuthor[]) || []);
+        } else {
+          const { data } = await supabase
+            .from("profiles")
+            .select("*")
+            .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+            .limit(20);
+          setWriters((data as Profile[]) || []);
+        }
+      } catch (error) {
+        console.error("Failed to search:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }, 300);
     return () => clearTimeout(timer);
   }, [query, activeTab]);

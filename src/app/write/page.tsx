@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
@@ -59,18 +57,23 @@ function WritePageInner() {
     if (!title.trim() && !content.trim()) return;
     setSaving(true);
 
-    const { error } = await supabase.from("poems").insert({
-      author_id: "00000000-0000-0000-0000-000000000000",
-      title: title || "Untitled",
-      content,
-      mood: selectedMood,
-      tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-      status: "draft",
-      prompt_id: promptId,
-    });
+    try {
+      const { error } = await supabase.from("poems").insert({
+        author_id: "00000000-0000-0000-0000-000000000000",
+        title: title || "Untitled",
+        content,
+        mood: selectedMood,
+        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+        status: "draft",
+        prompt_id: promptId,
+      });
 
-    setSaving(false);
-    setToast(error ? "Failed to save" : "Draft saved");
+      setToast(error ? "Failed to save" : "Draft saved");
+    } catch {
+      setToast("Something went wrong");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -79,25 +82,29 @@ function WritePageInner() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("poems")
-      .insert({
-        author_id: "00000000-0000-0000-0000-000000000000",
-        title: title || "Untitled",
-        content,
-        mood: selectedMood,
-        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-        status: "published",
-        published_at: new Date().toISOString(),
-        prompt_id: promptId,
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("poems")
+        .insert({
+          author_id: "00000000-0000-0000-0000-000000000000",
+          title: title || "Untitled",
+          content,
+          mood: selectedMood,
+          tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+          status: "published",
+          published_at: new Date().toISOString(),
+          prompt_id: promptId,
+        })
+        .select()
+        .single();
 
-    if (!error && data) {
-      router.push(`/poem/${data.id}`);
-    } else {
-      setToast("Failed to publish");
+      if (!error && data) {
+        router.push(`/poem/${data.id}`);
+      } else {
+        setToast("Failed to publish");
+      }
+    } catch {
+      setToast("Something went wrong");
     }
   };
 

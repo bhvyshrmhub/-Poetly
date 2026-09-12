@@ -23,53 +23,65 @@ export default function PoemPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: poemData } = await supabase
-        .from("poems")
-        .select("*, profiles!inner(*)")
-        .eq("id", id)
-        .single();
-
-      if (poemData) {
-        setPoem(poemData as PoemWithAuthor);
-
-        const { count } = await supabase
-          .from("likes")
-          .select("*", { count: "exact", head: true })
-          .eq("poem_id", id);
-        setLikeCount(count || 0);
-
-        const { count: resCount } = await supabase
-          .from("responses")
-          .select("*", { count: "exact", head: true })
-          .eq("original_id", id);
-        setResponseCount(resCount || 0);
-
-        const { data: commentData } = await supabase
-          .from("comments")
+      try {
+        const { data: poemData } = await supabase
+          .from("poems")
           .select("*, profiles!inner(*)")
-          .eq("poem_id", id)
-          .order("created_at", { ascending: true });
-        setComments((commentData as CommentWithAuthor[]) || []);
+          .eq("id", id)
+          .single();
+
+        if (poemData) {
+          setPoem(poemData as PoemWithAuthor);
+
+          const { count } = await supabase
+            .from("likes")
+            .select("*", { count: "exact", head: true })
+            .eq("poem_id", id);
+          setLikeCount(count || 0);
+
+          const { count: resCount } = await supabase
+            .from("responses")
+            .select("*", { count: "exact", head: true })
+            .eq("original_poem_id", id);
+          setResponseCount(resCount || 0);
+
+          const { data: commentData } = await supabase
+            .from("comments")
+            .select("*, profiles!inner(*)")
+            .eq("poem_id", id)
+            .order("created_at", { ascending: true });
+          setComments((commentData as CommentWithAuthor[]) || []);
+        }
+      } catch {
+        setToast("Failed to load poem");
       }
       setLoading(false);
     })();
   }, [id]);
 
   const handleLike = async () => {
-    await supabase.from("likes").insert({ user_id: "00000000-0000-0000-0000-000000000000", poem_id: id });
-    setLikeCount(likeCount + 1);
+    try {
+      await supabase.from("likes").insert({ user_id: "00000000-0000-0000-0000-000000000000", poem_id: id });
+      setLikeCount(likeCount + 1);
+    } catch {
+      setToast("Failed to like poem");
+    }
   };
 
   const handleComment = async () => {
     if (!commentText.trim()) return;
-    await supabase.from("comments").insert({ poem_id: id, author_id: "00000000-0000-0000-0000-000000000000", content: commentText.trim() });
-    setCommentText("");
-    const { data: commentData } = await supabase
-      .from("comments")
-      .select("*, profiles!inner(*)")
-      .eq("poem_id", id)
-      .order("created_at", { ascending: true });
-    setComments((commentData as CommentWithAuthor[]) || []);
+    try {
+      await supabase.from("comments").insert({ poem_id: id, author_id: "00000000-0000-0000-0000-000000000000", content: commentText.trim() });
+      setCommentText("");
+      const { data: commentData } = await supabase
+        .from("comments")
+        .select("*, profiles!inner(*)")
+        .eq("poem_id", id)
+        .order("created_at", { ascending: true });
+      setComments((commentData as CommentWithAuthor[]) || []);
+    } catch {
+      setToast("Failed to post comment");
+    }
   };
 
   if (loading) {

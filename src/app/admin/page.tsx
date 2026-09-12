@@ -17,24 +17,29 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
-    const [poems, reports, featured, prompts, collections, comments] = await Promise.all([
-      supabase.from("poems").select("id", { count: "exact", head: true }),
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("featured_content").select("id", { count: "exact", head: true }),
-      supabase.from("prompts").select("id", { count: "exact", head: true }).eq("is_active", true),
-      supabase.from("collections").select("id", { count: "exact", head: true }),
-      supabase.from("comments").select("id", { count: "exact", head: true }),
-    ]);
+    try {
+      const [poems, reports, featured, prompts, collections, comments] = await Promise.all([
+        supabase.from("poems").select("id", { count: "exact", head: true }),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("featured_content").select("id", { count: "exact", head: true }),
+        supabase.from("prompts").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("collections").select("id", { count: "exact", head: true }),
+        supabase.from("comments").select("id", { count: "exact", head: true }),
+      ]);
 
-    setStats({
-      poems: poems.count || 0,
-      reports: reports.count || 0,
-      featured: featured.count || 0,
-      prompts: prompts.count || 0,
-      collections: collections.count || 0,
-      comments: comments.count || 0,
-    });
-    setLoading(false);
+      setStats({
+        poems: poems.count || 0,
+        reports: reports.count || 0,
+        featured: featured.count || 0,
+        prompts: prompts.count || 0,
+        collections: collections.count || 0,
+        comments: comments.count || 0,
+      });
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);

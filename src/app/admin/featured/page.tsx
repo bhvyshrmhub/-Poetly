@@ -29,53 +29,70 @@ export default function AdminFeaturedPage() {
 
   const fetchFeatured = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("featured_content").select("*").order("position", { ascending: true });
-    const featured = (data as FeaturedRow[]) || [];
+    try {
+      const { data } = await supabase.from("featured_content").select("*").order("position", { ascending: true });
+      const featured = (data as FeaturedRow[]) || [];
 
-    const enriched = await Promise.all(
-      featured.map(async (f) => {
-        if (f.content_type === "poem") {
-          const { data: poem } = await supabase.from("poems").select("*").eq("id", f.content_id).single();
-          return { ...f, poem: poem as Poem };
-        }
-        if (f.content_type === "prompt") {
-          const { data: prompt } = await supabase.from("prompts").select("*").eq("id", f.content_id).single();
-          return { ...f, prompt: prompt as Prompt };
-        }
-        return f;
-      })
-    );
+      const enriched = await Promise.all(
+        featured.map(async (f) => {
+          if (f.content_type === "poem") {
+            const { data: poem } = await supabase.from("poems").select("*").eq("id", f.content_id).single();
+            return { ...f, poem: poem as Poem };
+          }
+          if (f.content_type === "prompt") {
+            const { data: prompt } = await supabase.from("prompts").select("*").eq("id", f.content_id).single();
+            return { ...f, prompt: prompt as Prompt };
+          }
+          return f;
+        })
+      );
 
-    setItems(enriched);
-    setLoading(false);
+      setItems(enriched);
+    } catch (error) {
+      console.error("Failed to fetch featured content:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchFeatured(); }, [fetchFeatured]);
 
   const loadAvailable = async () => {
-    const [poemsRes, promptsRes] = await Promise.all([
-      supabase.from("poems").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(20),
-      supabase.from("prompts").select("*").order("created_at", { ascending: false }).limit(20),
-    ]);
-    setAvailablePoems((poemsRes.data as Poem[]) || []);
-    setAvailablePrompts((promptsRes.data as Prompt[]) || []);
+    try {
+      const [poemsRes, promptsRes] = await Promise.all([
+        supabase.from("poems").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(20),
+        supabase.from("prompts").select("*").order("created_at", { ascending: false }).limit(20),
+      ]);
+      setAvailablePoems((poemsRes.data as Poem[]) || []);
+      setAvailablePrompts((promptsRes.data as Prompt[]) || []);
+    } catch (error) {
+      console.error("Failed to load available content:", error);
+    }
   };
 
   const handleAdd = async (contentId: string) => {
-    const maxPos = items.reduce((max, i) => Math.max(max, i.position), -1);
-    await supabase.from("featured_content").insert({
-      content_type: addType,
-      content_id: contentId,
-      position: maxPos + 1,
-    });
-    setShowAdd(false);
-    fetchFeatured();
+    try {
+      const maxPos = items.reduce((max, i) => Math.max(max, i.position), -1);
+      await supabase.from("featured_content").insert({
+        content_type: addType,
+        content_id: contentId,
+        position: maxPos + 1,
+      });
+      setShowAdd(false);
+      fetchFeatured();
+    } catch (error) {
+      console.error("Failed to add featured content:", error);
+    }
   };
 
   const handleRemove = async (id: string) => {
     setConfirm(null);
-    await supabase.from("featured_content").delete().eq("id", id);
-    fetchFeatured();
+    try {
+      await supabase.from("featured_content").delete().eq("id", id);
+      fetchFeatured();
+    } catch (error) {
+      console.error("Failed to remove featured content:", error);
+    }
   };
 
   const handleMove = async (id: string, direction: "up" | "down") => {
@@ -89,12 +106,16 @@ export default function AdminFeaturedPage() {
     const [moved] = updated.splice(idx, 1);
     updated.splice(swapIdx, 0, moved);
 
-    await Promise.all(
-      updated.map((item) =>
-        supabase.from("featured_content").update({ position: item.position }).eq("id", item.id)
-      )
-    );
-    setItems(updated);
+    try {
+      await Promise.all(
+        updated.map((item) =>
+          supabase.from("featured_content").update({ position: item.position }).eq("id", item.id)
+        )
+      );
+      setItems(updated);
+    } catch (error) {
+      console.error("Failed to reorder featured content:", error);
+    }
   };
 
   return (

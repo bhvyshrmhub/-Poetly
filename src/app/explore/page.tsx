@@ -18,25 +18,28 @@ export default function ExplorePage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-
-      if (activeTab === "poems") {
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .order("published_at", { ascending: false })
-          .limit(20);
-        setPoems((data as PoemWithAuthor[]) || []);
-      } else if (activeTab === "prompts") {
-        const { data } = await supabase
-          .from("prompts")
-          .select("*")
-          .order("created_at", { ascending: false });
-        setPrompts((data as Prompt[]) || []);
+      try {
+        if (activeTab === "poems") {
+          const { data } = await supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .eq("status", "published")
+            .eq("visibility", "public")
+            .order("published_at", { ascending: false })
+            .limit(20);
+          setPoems((data as PoemWithAuthor[]) || []);
+        } else if (activeTab === "prompts") {
+          const { data } = await supabase
+            .from("prompts")
+            .select("*")
+            .order("created_at", { ascending: false });
+          setPrompts((data as Prompt[]) || []);
+        }
+      } catch (error) {
+        console.error("Failed to load explore content:", error);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     })();
   }, [activeTab]);
 

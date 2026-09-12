@@ -18,13 +18,18 @@ export default function CollectionsPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   const fetchCollections = useCallback(async () => {
-    const { data } = await supabase
-      .from("collections")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      const { data } = await supabase
+        .from("collections")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    setCollections((data as Collection[]) || []);
-    setLoading(false);
+      setCollections((data as Collection[]) || []);
+    } catch {
+      setToast("Failed to load collections");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -34,18 +39,24 @@ export default function CollectionsPage() {
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
 
-    const { error } = await supabase.from("collections").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
-      title: newTitle.trim(),
-      description: newDesc.trim() || null,
-    });
+    try {
+      const { error } = await supabase.from("collections").insert({
+        user_id: "00000000-0000-0000-0000-000000000000",
+        title: newTitle.trim(),
+        description: newDesc.trim() || null,
+      });
 
-    if (!error) {
-      setNewTitle("");
-      setNewDesc("");
-      setShowCreate(false);
-      fetchCollections();
-      setToast("Collection created");
+      if (!error) {
+        setNewTitle("");
+        setNewDesc("");
+        setShowCreate(false);
+        fetchCollections();
+        setToast("Collection created");
+      } else {
+        setToast("Failed to create collection");
+      }
+    } catch {
+      setToast("Failed to create collection");
     }
   };
 

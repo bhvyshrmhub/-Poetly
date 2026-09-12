@@ -21,34 +21,53 @@ export default function CollectionDetailPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: col } = await supabase.from("collections").select("*").eq("id", id).single();
-    setCollection(col);
+    try {
+      const { data: col } = await supabase.from("collections").select("*").eq("id", id).single();
+      setCollection(col);
 
-    if (col) {
-      const { data: cp } = await supabase.from("collection_poems").select("poem_id").eq("collection_id", id);
-      const poemIds = cp?.map((r) => r.poem_id) || [];
-      if (poemIds.length > 0) {
-        const { data } = await supabase.from("poems").select("*, profiles!inner(*)").in("id", poemIds);
-        setPoems((data as PoemWithAuthor[]) || []);
+      if (col) {
+        const { data: cp } = await supabase.from("collection_poems").select("poem_id").eq("collection_id", id);
+        const poemIds = cp?.map((r) => r.poem_id) || [];
+        if (poemIds.length > 0) {
+          const { data } = await supabase.from("poems").select("*, profiles!inner(*)").in("id", poemIds);
+          setPoems((data as PoemWithAuthor[]) || []);
+        }
       }
+    } catch {
+      setToast("Failed to load collection");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleAddPoem = async (poemId: string) => {
-    const { error } = await supabase.from("collection_poems").insert({ collection_id: id, poem_id: poemId });
-    if (!error) {
-      setShowAddPoem(false);
-      fetchData();
-      setToast("Poem added");
+    try {
+      const { error } = await supabase.from("collection_poems").insert({ collection_id: id, poem_id: poemId });
+      if (!error) {
+        setShowAddPoem(false);
+        fetchData();
+        setToast("Poem added");
+      } else {
+        setToast("Failed to add poem");
+      }
+    } catch {
+      setToast("Failed to add poem");
     }
   };
 
   const handleRemovePoem = async (poemId: string) => {
-    await supabase.from("collection_poems").delete().eq("collection_id", id).eq("poem_id", poemId);
-    setPoems(poems.filter((p) => p.id !== poemId));
+    try {
+      const { error } = await supabase.from("collection_poems").delete().eq("collection_id", id).eq("poem_id", poemId);
+      if (!error) {
+        setPoems(poems.filter((p) => p.id !== poemId));
+      } else {
+        setToast("Failed to remove poem");
+      }
+    } catch {
+      setToast("Failed to remove poem");
+    }
   };
 
   if (loading) {
@@ -106,10 +125,18 @@ function AddPoemSelector({ onSelect, existingIds, onClose }: { onSelect: (id: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("poems").select("*, profiles!inner(*)").eq("status", "published").order("created_at", { ascending: false }).limit(30).then(({ data }) => {
-      setPoems((data as PoemWithAuthor[]) || []);
-      setLoading(false);
-    });
+    (async () => {
+      try {
+        const { data, error } = await supabase.from("poems").select("*, profiles!inner(*)").eq("status", "published").order("created_at", { ascending: false }).limit(30);
+        if (!error) {
+          setPoems((data as PoemWithAuthor[]) || []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const available = poems.filter((p) => !existingIds.includes(p.id));

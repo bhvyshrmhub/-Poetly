@@ -14,52 +14,57 @@ export default function TrendingPage() {
 
   const fetchPoems = useCallback(async () => {
     setLoading(true);
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    if (activeTab === "rising") {
-      const { data } = await supabase
-        .from("poems")
-        .select("*, profiles!inner(*)")
-        .eq("status", "published")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setPoems((data as PoemWithAuthor[]) || []);
-    } else {
-      const { data: likesData } = await supabase
-        .from("likes")
-        .select("poem_id")
-        .gte("created_at", sevenDaysAgo.toISOString());
-
-      const likeCounts: Record<string, number> = {};
-      likesData?.forEach((l) => {
-        likeCounts[l.poem_id] = (likeCounts[l.poem_id] || 0) + 1;
-      });
-
-      const sortedPoemIds = Object.entries(likeCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 20)
-        .map(([id]) => id);
-
-      if (sortedPoemIds.length === 0) {
+      if (activeTab === "rising") {
         const { data } = await supabase
           .from("poems")
           .select("*, profiles!inner(*)")
           .eq("status", "published")
           .eq("visibility", "public")
-          .order("published_at", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(10);
         setPoems((data as PoemWithAuthor[]) || []);
       } else {
-        const { data } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .in("id", sortedPoemIds);
-        setPoems((data as PoemWithAuthor[]) || []);
+        const { data: likesData } = await supabase
+          .from("likes")
+          .select("poem_id")
+          .gte("created_at", sevenDaysAgo.toISOString());
+
+        const likeCounts: Record<string, number> = {};
+        likesData?.forEach((l) => {
+          likeCounts[l.poem_id] = (likeCounts[l.poem_id] || 0) + 1;
+        });
+
+        const sortedPoemIds = Object.entries(likeCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 20)
+          .map(([id]) => id);
+
+        if (sortedPoemIds.length === 0) {
+          const { data } = await supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .eq("status", "published")
+            .eq("visibility", "public")
+            .order("published_at", { ascending: false })
+            .limit(10);
+          setPoems((data as PoemWithAuthor[]) || []);
+        } else {
+          const { data } = await supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .in("id", sortedPoemIds);
+          setPoems((data as PoemWithAuthor[]) || []);
+        }
       }
+    } catch (error) {
+      console.error("Failed to load trending poems:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [activeTab]);
 
   useEffect(() => {

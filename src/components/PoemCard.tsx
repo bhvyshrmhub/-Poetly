@@ -15,7 +15,16 @@ export default function PoemCard({ poem, variant = "default" }: PoemCardProps) {
   const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
-    supabase.from("likes").select("*", { count: "exact", head: true }).eq("poem_id", poem.id).then(({ count }) => setLikeCount(count || 0));
+    (async () => {
+      try {
+        const { count, error } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("poem_id", poem.id);
+        if (!error) {
+          setLikeCount(count || 0);
+        }
+      } catch {
+        // ignore
+      }
+    })();
   }, [poem.id]);
 
   const preview = poem.content.split("\n").slice(0, 4).join("\n");

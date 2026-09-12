@@ -23,26 +23,30 @@ export default function PoemResponsesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
 
-    const { data: parent } = await supabase
-      .from("poems")
-      .select("*, profiles!inner(*)")
-      .eq("id", poemId)
-      .single();
+    try {
+      const { data: parent } = await supabase
+        .from("poems")
+        .select("*, profiles!inner(*)")
+        .eq("id", poemId)
+        .single();
 
-    setParentPoem(parent as PoemWithAuthor);
+      setParentPoem(parent as PoemWithAuthor);
 
-    const { data: responseData } = await supabase
-      .from("responses")
-      .select("*, author:profiles!inner(*), original:poems!response_id(*)")
-      .eq("original_id", poemId)
-      .order("created_at", { ascending: false });
+      const { data: responseData } = await supabase
+        .from("responses")
+        .select("*, author:profiles!inner(*), original:poems!response_id(*)")
+        .eq("original_poem_id", poemId)
+        .order("created_at", { ascending: false });
 
-    if (responseData) {
-      const formattedResponses: PoemWithAuthor[] = (responseData as ResponseData[]).map((r) => ({
-        ...(r.original as unknown as PoemWithAuthor),
-        profiles: r.author as unknown as PoemWithAuthor["profiles"],
-      }));
-      setResponses(formattedResponses);
+      if (responseData) {
+        const formattedResponses: PoemWithAuthor[] = (responseData as ResponseData[]).map((r) => ({
+          ...(r.original as unknown as PoemWithAuthor),
+          profiles: r.author as unknown as PoemWithAuthor["profiles"],
+        }));
+        setResponses(formattedResponses);
+      }
+    } catch {
+      // Failed to load responses — will show empty state
     }
 
     setLoading(false);

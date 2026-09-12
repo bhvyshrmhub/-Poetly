@@ -21,19 +21,24 @@ export default function AdminPoemsPage() {
 
   const fetchPoems = useCallback(async () => {
     setLoading(true);
-    let query = supabase
-      .from("poems")
-      .select("*, profiles!inner(*)")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    try {
+      let query = supabase
+        .from("poems")
+        .select("*, profiles!inner(*)")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (filter !== "all") {
-      query = query.eq("status", filter);
+      if (filter !== "all") {
+        query = query.eq("status", filter);
+      }
+
+      const { data } = await query;
+      setPoems((data as PoemWithAuthor[]) || []);
+    } catch (error) {
+      console.error("Failed to fetch poems:", error);
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query;
-    setPoems((data as PoemWithAuthor[]) || []);
-    setLoading(false);
   }, [filter]);
 
   useEffect(() => { fetchPoems(); }, [fetchPoems]);
@@ -41,35 +46,39 @@ export default function AdminPoemsPage() {
   const handleAction = async (action: string, poemId: string) => {
     setConfirm(null);
 
-    switch (action) {
-      case "feature": {
-        const { error } = await supabase.from("featured_content").insert({
-          content_type: "poem",
-          content_id: poemId,
-        });
-        if (!error) fetchPoems();
-        break;
+    try {
+      switch (action) {
+        case "feature": {
+          const { error } = await supabase.from("featured_content").insert({
+            content_type: "poem",
+            content_id: poemId,
+          });
+          if (!error) fetchPoems();
+          break;
+        }
+        case "unfeature": {
+          await supabase.from("featured_content").delete().eq("content_type", "poem").eq("content_id", poemId);
+          fetchPoems();
+          break;
+        }
+        case "hide": {
+          await supabase.from("poems").update({ status: "hidden" }).eq("id", poemId);
+          fetchPoems();
+          break;
+        }
+        case "restore": {
+          await supabase.from("poems").update({ status: "published" }).eq("id", poemId);
+          fetchPoems();
+          break;
+        }
+        case "delete": {
+          await supabase.from("poems").update({ status: "removed" }).eq("id", poemId);
+          fetchPoems();
+          break;
+        }
       }
-      case "unfeature": {
-        await supabase.from("featured_content").delete().eq("content_type", "poem").eq("content_id", poemId);
-        fetchPoems();
-        break;
-      }
-      case "hide": {
-        await supabase.from("poems").update({ status: "hidden" }).eq("id", poemId);
-        fetchPoems();
-        break;
-      }
-      case "restore": {
-        await supabase.from("poems").update({ status: "published" }).eq("id", poemId);
-        fetchPoems();
-        break;
-      }
-      case "delete": {
-        await supabase.from("poems").update({ status: "removed" }).eq("id", poemId);
-        fetchPoems();
-        break;
-      }
+    } catch (error) {
+      console.error("Failed to perform action:", error);
     }
   };
 

@@ -20,13 +20,18 @@ export default function AdminReportsPage() {
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from("reports").select("*").order("created_at", { ascending: false });
-    if (filter !== "all") {
-      query = query.eq("status", filter);
+    try {
+      let query = supabase.from("reports").select("*").order("created_at", { ascending: false });
+      if (filter !== "all") {
+        query = query.eq("status", filter);
+      }
+      const { data } = await query;
+      setReports((data as Report[]) || []);
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+    } finally {
+      setLoading(false);
     }
-    const { data } = await query;
-    setReports((data as Report[]) || []);
-    setLoading(false);
   }, [filter]);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
@@ -36,46 +41,50 @@ export default function AdminReportsPage() {
     const report = reports.find((r) => r.id === reportId);
     if (!report) return;
 
-    switch (action) {
-      case "resolve":
-        await supabase.from("reports").update({
-          status: "resolved",
-          admin_note: adminNote || null,
-          resolved_at: new Date().toISOString(),
-        }).eq("id", reportId);
-        break;
-      case "dismiss":
-        await supabase.from("reports").update({
-          status: "dismissed",
-          admin_note: adminNote || null,
-          resolved_at: new Date().toISOString(),
-        }).eq("id", reportId);
-        break;
-      case "hide":
-        if (report.target_type === "poem") {
-          await supabase.from("poems").update({ status: "hidden" }).eq("id", report.target_id);
-        }
-        await supabase.from("reports").update({
-          status: "resolved",
-          admin_note: `Content hidden. ${adminNote || ""}`,
-          resolved_at: new Date().toISOString(),
-        }).eq("id", reportId);
-        break;
-      case "remove":
-        if (report.target_type === "poem") {
-          await supabase.from("poems").update({ status: "removed" }).eq("id", report.target_id);
-        }
-        await supabase.from("reports").update({
-          status: "resolved",
-          admin_note: `Content removed. ${adminNote || ""}`,
-          resolved_at: new Date().toISOString(),
-        }).eq("id", reportId);
-        break;
-    }
+    try {
+      switch (action) {
+        case "resolve":
+          await supabase.from("reports").update({
+            status: "resolved",
+            admin_note: adminNote || null,
+            resolved_at: new Date().toISOString(),
+          }).eq("id", reportId);
+          break;
+        case "dismiss":
+          await supabase.from("reports").update({
+            status: "dismissed",
+            admin_note: adminNote || null,
+            resolved_at: new Date().toISOString(),
+          }).eq("id", reportId);
+          break;
+        case "hide":
+          if (report.target_type === "poem") {
+            await supabase.from("poems").update({ status: "hidden" }).eq("id", report.target_id);
+          }
+          await supabase.from("reports").update({
+            status: "resolved",
+            admin_note: `Content hidden. ${adminNote || ""}`,
+            resolved_at: new Date().toISOString(),
+          }).eq("id", reportId);
+          break;
+        case "remove":
+          if (report.target_type === "poem") {
+            await supabase.from("poems").update({ status: "removed" }).eq("id", report.target_id);
+          }
+          await supabase.from("reports").update({
+            status: "resolved",
+            admin_note: `Content removed. ${adminNote || ""}`,
+            resolved_at: new Date().toISOString(),
+          }).eq("id", reportId);
+          break;
+      }
 
-    setSelected(null);
-    setAdminNote("");
-    fetchReports();
+      setSelected(null);
+      setAdminNote("");
+      fetchReports();
+    } catch (error) {
+      console.error("Failed to perform action:", error);
+    }
   };
 
   const filters = [

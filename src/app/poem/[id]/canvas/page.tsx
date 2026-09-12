@@ -30,18 +30,23 @@ export default function CanvasPage() {
   const [scale, setScale] = useState(0.35);
 
   useEffect(() => {
-    supabase
-      .from("poems")
-      .select("*")
-      .eq("id", poemId)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("poems")
+          .select("*")
+          .eq("id", poemId)
+          .single();
         if (data) {
           setPoem(data);
           setState(getDefaultCanvasState(data.title, data.content, "Anonymous Poet"));
         }
+      } catch {
+        setToast("Failed to load poem");
+      } finally {
         setLoading(false);
-      });
+      }
+    })();
   }, [poemId]);
 
   const updateState = useCallback((updates: Partial<CanvasState>) => {
@@ -77,11 +82,15 @@ export default function CanvasPage() {
 
   const handleSaveStyle = useCallback(() => {
     if (!state) return;
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    const style = { ...state, savedAt: new Date().toISOString(), name: `Style ${saved.length + 1}` };
-    saved.push(style);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-    setToast("Style saved");
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const style = { ...state, savedAt: new Date().toISOString(), name: `Style ${saved.length + 1}` };
+      saved.push(style);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      setToast("Style saved");
+    } catch {
+      setToast("Failed to save style");
+    }
   }, [state]);
 
   const handleReset = useCallback(() => {

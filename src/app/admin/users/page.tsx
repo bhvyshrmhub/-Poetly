@@ -15,13 +15,18 @@ export default function AdminUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setUsers((data as Profile[]) || []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setUsers((data as Profile[]) || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);

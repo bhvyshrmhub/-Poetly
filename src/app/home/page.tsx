@@ -16,24 +16,29 @@ export default function HomePage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [poemsRes, promptRes] = await Promise.all([
-        supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("status", "published")
-          .eq("visibility", "public")
-          .order("published_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("prompts")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1),
-      ]);
-      setPoems((poemsRes.data as PoemWithAuthor[]) || []);
-      setActivePrompt((promptRes.data?.[0] as Prompt) || null);
-      setLoading(false);
+      try {
+        const [poemsRes, promptRes] = await Promise.all([
+          supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .eq("status", "published")
+            .eq("visibility", "public")
+            .order("published_at", { ascending: false })
+            .limit(20),
+          supabase
+            .from("prompts")
+            .select("*")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(1),
+        ]);
+        setPoems((poemsRes.data as PoemWithAuthor[]) || []);
+        setActivePrompt((promptRes.data?.[0] as Prompt) || null);
+      } catch (error) {
+        console.error("Failed to load home page:", error);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 

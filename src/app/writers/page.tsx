@@ -14,33 +14,37 @@ export default function WritersPage() {
 
   const fetchWriters = useCallback(async () => {
     setLoading(true);
+    try {
+      let query = supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(30);
 
-    let query = supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(30);
+      if (searchQuery.trim()) {
+        query = query.or(`display_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
+      }
 
-    if (searchQuery.trim()) {
-      query = query.or(`display_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
+      const { data: profiles } = await query;
+
+      if (profiles) {
+        const writersWithStats: WriterWithStats[] = await Promise.all(
+          profiles.map(async (p) => {
+            const [{ count: followers }, { count: following }, { count: poems }] = await Promise.all([
+              supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", p.id),
+              supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id),
+              supabase.from("poems").select("*", { count: "exact", head: true }).eq("author_id", p.id).eq("status", "published"),
+            ]);
+            return { ...p, followerCount: followers || 0, followingCount: following || 0, poemCount: poems || 0, isFollowed: false };
+          })
+        );
+        setWriters(writersWithStats);
+      }
+    } catch (error) {
+      console.error("Failed to load writers:", error);
+    } finally {
+      setLoading(false);
     }
-
-    const { data: profiles } = await query;
-
-    if (profiles) {
-      const writersWithStats: WriterWithStats[] = await Promise.all(
-        profiles.map(async (p) => {
-          const [{ count: followers }, { count: following }, { count: poems }] = await Promise.all([
-            supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", p.id),
-            supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id),
-            supabase.from("poems").select("*", { count: "exact", head: true }).eq("author_id", p.id).eq("status", "published"),
-          ]);
-          return { ...p, followerCount: followers || 0, followingCount: following || 0, poemCount: poems || 0, isFollowed: false };
-        })
-      );
-      setWriters(writersWithStats);
-    }
-    setLoading(false);
   }, [searchQuery]);
 
   useEffect(() => {

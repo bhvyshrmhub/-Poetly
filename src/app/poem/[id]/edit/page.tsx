@@ -50,12 +50,13 @@ export default function EditPoemPage() {
 
   useEffect(() => {
     if (!poemId) return;
-    supabase
-      .from("poems")
-      .select("*")
-      .eq("id", poemId)
-      .single()
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("poems")
+          .select("*")
+          .eq("id", poemId)
+          .single();
         if (error || !data) {
           setToast("Poem not found");
           router.push("/home");
@@ -66,8 +67,12 @@ export default function EditPoemPage() {
         setContent(data.content);
         setSelectedMood(data.mood);
         setTags(data.tags?.join(", ") || "");
+      } catch {
+        setToast("Failed to load poem");
+      } finally {
         setLoading(false);
-      });
+      }
+    })();
   }, [poemId, router]);
 
   const handleSave = async () => {
@@ -77,27 +82,36 @@ export default function EditPoemPage() {
     }
     setSaving(true);
 
-    const { error } = await supabase
-      .from("poems")
-      .update({
-        title: title || "Untitled",
-        content,
-        mood: selectedMood,
-        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-      })
-      .eq("id", poem.id);
+    try {
+      const { error } = await supabase
+        .from("poems")
+        .update({
+          title: title || "Untitled",
+          content,
+          mood: selectedMood,
+          tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+        })
+        .eq("id", poem.id);
 
-    setSaving(false);
-    setToast(error ? "Failed to save" : "Saved");
+      setSaving(false);
+      setToast(error ? "Failed to save" : "Saved");
+    } catch {
+      setSaving(false);
+      setToast("Failed to save");
+    }
   };
 
   const handleDelete = async () => {
     if (!poem || !confirm("Delete this poem? This cannot be undone.")) return;
 
-    const { error } = await supabase.from("poems").delete().eq("id", poem.id);
-    if (!error) {
-      router.push("/home");
-    } else {
+    try {
+      const { error } = await supabase.from("poems").delete().eq("id", poem.id);
+      if (!error) {
+        router.push("/home");
+      } else {
+        setToast("Failed to delete");
+      }
+    } catch {
       setToast("Failed to delete");
     }
   };

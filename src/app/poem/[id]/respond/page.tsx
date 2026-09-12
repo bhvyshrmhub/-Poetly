@@ -21,15 +21,20 @@ export default function RespondPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("poems")
-      .select("*, profiles!inner(*)")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("poems")
+          .select("*, profiles!inner(*)")
+          .eq("id", id)
+          .single();
         setOriginalPoem(data as PoemWithAuthor);
+      } catch {
+        setToast("Failed to load poem");
+      } finally {
         setLoading(false);
-      });
+      }
+    })();
   }, [id]);
 
   const handlePublish = async () => {
@@ -38,27 +43,31 @@ export default function RespondPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("poems")
-      .insert({
-        author_id: "00000000-0000-0000-0000-000000000000",
-        title: title || "Response",
-        content,
-        response_to: id,
-        status: "published",
-        published_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("poems")
+        .insert({
+          author_id: "00000000-0000-0000-0000-000000000000",
+          title: title || "Response",
+          content,
+          response_to: id,
+          status: "published",
+          published_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-    if (!error && data) {
-      await supabase.from("responses").insert({
-        original_poem_id: id,
-        response_poem_id: data.id,
-        author_id: "00000000-0000-0000-0000-000000000000",
-      });
-      router.push(`/poem/${data.id}`);
-    } else {
+      if (!error && data) {
+        await supabase.from("responses").insert({
+          original_poem_id: id,
+          response_poem_id: data.id,
+          author_id: "00000000-0000-0000-0000-000000000000",
+        });
+        router.push(`/poem/${data.id}`);
+      } else {
+        setToast("Failed to publish");
+      }
+    } catch {
       setToast("Failed to publish");
     }
   };

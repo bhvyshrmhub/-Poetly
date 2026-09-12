@@ -6,26 +6,33 @@ import { supabase } from "@/lib/supabase/client";
 import { Prompt } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
+import Toast from "@/components/Toast";
 
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"active" | "archive">("active");
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      let query = supabase.from("prompts").select("*").order("created_at", { ascending: false });
+      try {
+        let query = supabase.from("prompts").select("*").order("created_at", { ascending: false });
 
-      if (activeTab === "active") {
-        query = query.eq("is_active", true);
-      } else {
-        query = query.eq("is_active", false);
+        if (activeTab === "active") {
+          query = query.eq("is_active", true);
+        } else {
+          query = query.eq("is_active", false);
+        }
+
+        const { data } = await query;
+        setPrompts((data as Prompt[]) || []);
+      } catch {
+        setToast("Failed to load prompts");
+      } finally {
+        setLoading(false);
       }
-
-      const { data } = await query;
-      setPrompts((data as Prompt[]) || []);
-      setLoading(false);
     })();
   }, [activeTab]);
 
@@ -90,6 +97,7 @@ export default function PromptsPage() {
         )}
       </main>
       <MobileNav />
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }
