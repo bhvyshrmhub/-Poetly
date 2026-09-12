@@ -64,18 +64,26 @@ function WritePageInner() {
     setSaving(true);
 
     try {
-      const { error } = await supabase.from("poems").insert({
+      const insertData: Record<string, unknown> = {
         author_id: user.id,
         title: title || "Untitled",
         content,
         mood: selectedMood,
         tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
         status: "draft",
-        prompt_id: promptId,
-      });
+      };
+      if (promptId) insertData.prompt_id = promptId;
 
-      setToast(error ? "Failed to save" : "Draft saved");
-    } catch {
+      const { error } = await supabase.from("poems").insert(insertData);
+
+      if (error) {
+        console.error("Poem save error:", error.message, error.code, error.details, error.hint);
+        setToast("Failed to save draft");
+      } else {
+        setToast("Draft saved");
+      }
+    } catch (e) {
+      console.error("Poem save exception:", e);
       setToast("Something went wrong");
     } finally {
       setSaving(false);
@@ -93,27 +101,31 @@ function WritePageInner() {
     }
 
     try {
+      const insertData: Record<string, unknown> = {
+        author_id: user.id,
+        title: title || "Untitled",
+        content,
+        mood: selectedMood,
+        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+        status: "published",
+        published_at: new Date().toISOString(),
+      };
+      if (promptId) insertData.prompt_id = promptId;
+
       const { data, error } = await supabase
         .from("poems")
-        .insert({
-          author_id: user.id,
-          title: title || "Untitled",
-          content,
-          mood: selectedMood,
-          tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-          status: "published",
-          published_at: new Date().toISOString(),
-          prompt_id: promptId,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (!error && data) {
-        router.push(`/poem/${data.id}`);
-      } else {
+      if (error) {
+        console.error("Poem publish error:", error.message, error.code, error.details, error.hint);
         setToast("Failed to publish");
+      } else if (data) {
+        router.push(`/poem/${data.id}`);
       }
-    } catch {
+    } catch (e) {
+      console.error("Poem publish exception:", e);
       setToast("Something went wrong");
     }
   };

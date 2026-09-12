@@ -2,8 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const cookieMap = new Map<string, string>();
-
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -15,10 +13,9 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-            cookieMap.set(name, value);
-          });
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -61,15 +58,6 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
-
-  cookieMap.forEach((value, name) => {
-    supabaseResponse.cookies.set(name, value, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: "lax",
-      secure: true,
-    });
-  });
 
   return supabaseResponse;
 }

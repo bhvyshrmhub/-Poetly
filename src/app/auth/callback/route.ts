@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const cookieMap = new Map<string, string>();
-
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -29,10 +27,9 @@ export async function GET(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => {
-              request.cookies.set(name, value);
-              cookieMap.set(name, value);
-            });
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
             supabaseResponse = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) =>
               supabaseResponse.cookies.set(name, value, options)
@@ -54,13 +51,8 @@ export async function GET(request: NextRequest) {
       const redirectUrl = new URL(profile ? next : "/profile/setup", origin);
 
       const response = NextResponse.redirect(redirectUrl);
-      cookieMap.forEach((value, name) => {
-        response.cookies.set(name, value, {
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-          sameSite: "lax",
-          secure: true,
-        });
+      supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+        response.cookies.set(name, value);
       });
 
       return response;

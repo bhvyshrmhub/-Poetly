@@ -87,7 +87,7 @@ export default function ProfileSetupPage() {
     );
 
     if (upsertError) {
-      console.error("Profile save error:", upsertError);
+      console.error("Profile save error:", upsertError.message, upsertError.code, upsertError.details, upsertError.hint);
       if (upsertError.message.includes("unique")) {
         setError("That username is already taken.");
       } else {
