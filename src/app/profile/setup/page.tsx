@@ -27,7 +27,6 @@ export default function ProfileSetupPage() {
         router.replace("/home");
       } else {
         setChecking(false);
-        // Pre-fill display name from Google metadata
         if (user.user_metadata?.full_name) {
           setDisplayName(user.user_metadata.full_name);
         }
@@ -35,7 +34,6 @@ export default function ProfileSetupPage() {
     }
   }, [user, profile, authLoading, router]);
 
-  // Check username availability
   useEffect(() => {
     if (username.length < 3) {
       setUsernameStatus("idle");
@@ -64,7 +62,6 @@ export default function ProfileSetupPage() {
 
     const normalizedUsername = username.toLowerCase().trim();
 
-    // Validate username format
     if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
       setError("Username must be 3-20 characters, lowercase letters, numbers, and underscores only.");
       setLoading(false);
@@ -77,17 +74,20 @@ export default function ProfileSetupPage() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("profiles").insert({
-      id: user.id,
-      username: normalizedUsername,
-      display_name: displayName.trim(),
-      bio: bio.trim() || null,
-      website: website.trim() || null,
-      location: location.trim() || null,
-    });
+    const { error: upsertError } = await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        username: normalizedUsername,
+        display_name: displayName.trim(),
+        bio: bio.trim() || null,
+        website: website.trim() || null,
+        location: location.trim() || null,
+      },
+      { onConflict: "id" }
+    );
 
-    if (insertError) {
-      if (insertError.message.includes("unique")) {
+    if (upsertError) {
+      if (upsertError.message.includes("unique")) {
         setError("That username is already taken.");
       } else {
         setError("Something went wrong. Please try again.");
