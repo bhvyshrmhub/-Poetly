@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine } from "lucide-react";
+import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine, LogOut } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user, profile, signOut } = useAuth();
 
   const leftLinks = [
     { href: "/home", label: "Home", icon: Home },
@@ -13,11 +15,13 @@ export default function Navbar() {
     { href: "/search", label: "Search", icon: Search },
   ];
 
-  const rightLinks = [
-    { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/library", label: "Library", icon: BookMarked },
-    { href: "/profile", label: "Profile", icon: User },
-  ];
+  const rightLinks = user
+    ? [
+        { href: "/notifications", label: "Notifications", icon: Bell },
+        { href: "/library", label: "Library", icon: BookMarked },
+        { href: `/profile/${profile?.username || ""}`, label: "Profile", icon: User },
+      ]
+    : [];
 
   return (
     <nav className="hidden md:flex items-center justify-between px-6 h-[var(--nav-height)] border-b border-border-subtle bg-background/80 backdrop-blur-xl sticky top-0 z-50">
@@ -52,7 +56,7 @@ export default function Navbar() {
       </div>
 
       <Link
-        href="/write"
+        href={user ? "/write" : "/login"}
         className="flex items-center gap-2 px-4 py-1.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
       >
         <PenLine size={15} strokeWidth={2} />
@@ -78,6 +82,24 @@ export default function Navbar() {
             </Link>
           );
         })}
+
+        {user ? (
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150"
+          >
+            <LogOut size={17} strokeWidth={1.5} />
+            <span className="hidden lg:inline">Sign Out</span>
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150"
+          >
+            <User size={17} strokeWidth={1.5} />
+            <span className="hidden lg:inline">Sign In</span>
+          </Link>
+        )}
       </div>
     </nav>
   );

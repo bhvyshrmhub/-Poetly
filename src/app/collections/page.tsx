@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Collection } from "@/lib/types";
+import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 import Toast from "@/components/Toast";
@@ -15,6 +16,7 @@ export default function CollectionsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const { user } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
 
   const fetchCollections = useCallback(async () => {
@@ -38,10 +40,14 @@ export default function CollectionsPage() {
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
 
     try {
       const { error } = await supabase.from("collections").insert({
-        user_id: "00000000-0000-0000-0000-000000000000",
+        user_id: user.id,
         title: newTitle.trim(),
         description: newDesc.trim() || null,
       });

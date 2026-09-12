@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, TrendingUp, PenLine, Search, User } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const { user, profile } = useAuth();
 
   const items = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/trending", label: "Trending", icon: TrendingUp },
-    { href: "/write", label: "Create", icon: PenLine, isCreate: true },
+    { href: user ? "/write" : "/login", label: "Create", icon: PenLine, isCreate: true },
     { href: "/search", label: "Search", icon: Search },
-    { href: "/profile", label: "Profile", icon: User },
+    { href: user ? `/profile/${profile?.username || ""}` : "/login", label: "Profile", icon: User },
   ];
 
   return (

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
+import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
 
@@ -17,6 +18,7 @@ export default function RespondPage() {
   const [originalPoem, setOriginalPoem] = useState<PoemWithAuthor | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const { user } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,12 +44,16 @@ export default function RespondPage() {
       setToast("Write your response first");
       return;
     }
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from("poems")
         .insert({
-          author_id: "00000000-0000-0000-0000-000000000000",
+          author_id: user.id,
           title: title || "Response",
           content,
           response_to: id,
@@ -61,8 +67,19 @@ export default function RespondPage() {
         await supabase.from("responses").insert({
           original_poem_id: id,
           response_poem_id: data.id,
-          author_id: "00000000-0000-0000-0000-000000000000",
+          author_id: user.id,
         });
+
+        // Notify original poem author
+        if (originalPoem && user.id !== originalPoem.author_id) {
+          await supabase.from("notifications").insert({
+            recipient_id: originalPoem.author_id,
+            actor_id: user.id,
+            type: "response",
+            reference_id: data.id,
+          });
+        }
+
         router.push(`/poem/${data.id}`);
       } else {
         setToast("Failed to publish");

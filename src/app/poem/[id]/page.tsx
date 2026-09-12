@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react"
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
+import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
 
@@ -16,9 +17,12 @@ export default function PoemPage() {
   const [poem, setPoem] = useState<PoemWithAuthor | null>(null);
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
   const [likeCount, setLikeCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const { user } = useAuth();
   const [responseCount, setResponseCount] = useState(0);
 
   useEffect(() => {
@@ -38,6 +42,26 @@ export default function PoemPage() {
             .select("*", { count: "exact", head: true })
             .eq("poem_id", id);
           setLikeCount(count || 0);
+
+          // Check if current user liked this poem
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (currentUser) {
+            const { data: existingLike } = await supabase
+              .from("likes")
+              .select("id")
+              .eq("poem_id", id)
+              .eq("user_id", currentUser.id)
+              .single();
+            setIsLiked(!!existingLike);
+
+            const { data: existingSave } = await supabase
+              .from("saves")
+              .select("id")
+              .eq("poem_id", id)
+              .eq("user_id", currentUser.id)
+              .single();
+            setIsSaved(!!existingSave);
+          }
 
           const { count: resCount } = await supabase
             .from("responses")
@@ -60,18 +84,45 @@ export default function PoemPage() {
   }, [id]);
 
   const handleLike = async () => {
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
     try {
-      await supabase.from("likes").insert({ user_id: "00000000-0000-0000-0000-000000000000", poem_id: id });
-      setLikeCount(likeCount + 1);
+      if (isLiked) {
+        // Unlike
+        await supabase.from("likes").delete().eq("poem_id", id).eq("user_id", user.id);
+        setLikeCount(Math.max(0, likeCount - 1));
+        setIsLiked(false);
+      } else {
+        // Like
+        await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
+        setLikeCount(likeCount + 1);
+        setIsLiked(true);
+
+        // Notify poem author (don't notify self)
+        if (poem && user.id !== poem.author_id) {
+          await supabase.from("notifications").insert({
+            recipient_id: poem.author_id,
+            actor_id: user.id,
+            type: "like",
+            reference_id: id,
+          });
+        }
+      }
     } catch {
-      setToast("Failed to like poem");
+      setToast("Failed to update like");
     }
   };
 
   const handleComment = async () => {
     if (!commentText.trim()) return;
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
     try {
-      await supabase.from("comments").insert({ poem_id: id, author_id: "00000000-0000-0000-0000-000000000000", content: commentText.trim() });
+      await supabase.from("comments").insert({ poem_id: id, author_id: user.id, content: commentText.trim() });
       setCommentText("");
       const { data: commentData } = await supabase
         .from("comments")
@@ -79,8 +130,36 @@ export default function PoemPage() {
         .eq("poem_id", id)
         .order("created_at", { ascending: true });
       setComments((commentData as CommentWithAuthor[]) || []);
+
+      // Notify poem author (don't notify self)
+      if (poem && user.id !== poem.author_id) {
+        await supabase.from("notifications").insert({
+          recipient_id: poem.author_id,
+          actor_id: user.id,
+          type: "comment",
+          reference_id: id,
+        });
+      }
     } catch {
       setToast("Failed to post comment");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
+    try {
+      if (isSaved) {
+        await supabase.from("saves").delete().eq("poem_id", id).eq("user_id", user.id);
+        setIsSaved(false);
+      } else {
+        await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
+        setIsSaved(true);
+      }
+    } catch {
+      setToast("Failed to save poem");
     }
   };
 
@@ -144,17 +223,27 @@ export default function PoemPage() {
           )}
 
           <div className="flex items-center gap-5 py-5 border-y border-border-subtle mb-8">
-            <button onClick={handleLike} className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-all duration-150">
-              <Heart size={17} strokeWidth={1.5} />
+            <button onClick={handleLike} className={`flex items-center gap-2 text-sm transition-all duration-150 ${isLiked ? "text-error" : "text-text-tertiary hover:text-text-secondary"}`}>
+              <Heart size={17} strokeWidth={1.5} fill={isLiked ? "currentColor" : "none"} />
               <span>{likeCount}</span>
             </button>
             <span className="flex items-center gap-2 text-sm text-text-tertiary">
               <MessageCircle size={17} strokeWidth={1.5} /><span>{comments.length}</span>
             </span>
-            <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
-              <Bookmark size={17} strokeWidth={1.5} />
+            <button onClick={handleSave} className={`flex items-center gap-2 text-sm transition-colors ${isSaved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
+              <Bookmark size={17} strokeWidth={1.5} fill={isSaved ? "currentColor" : "none"} />
             </button>
-            <button className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: poem.title, url: window.location.href });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  setToast("Link copied");
+                }
+              }}
+              className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+            >
               <Share2 size={17} strokeWidth={1.5} />
             </button>
             {responseCount > 0 && (

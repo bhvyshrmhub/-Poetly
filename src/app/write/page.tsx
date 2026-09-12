@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
 
@@ -47,6 +48,7 @@ function WritePageInner() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [tags, setTags] = useState("");
   const [showCanvas, setShowCanvas] = useState(false);
+  const { user } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -55,11 +57,15 @@ function WritePageInner() {
 
   const handleSaveDraft = async () => {
     if (!title.trim() && !content.trim()) return;
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
     setSaving(true);
 
     try {
       const { error } = await supabase.from("poems").insert({
-        author_id: "00000000-0000-0000-0000-000000000000",
+        author_id: user.id,
         title: title || "Untitled",
         content,
         mood: selectedMood,
@@ -81,12 +87,16 @@ function WritePageInner() {
       setToast("Write something first");
       return;
     }
+    if (!user) {
+      setToast("You must be logged in");
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from("poems")
         .insert({
-          author_id: "00000000-0000-0000-0000-000000000000",
+          author_id: user.id,
           title: title || "Untitled",
           content,
           mood: selectedMood,
