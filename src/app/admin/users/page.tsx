@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -17,7 +16,6 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 const PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
-  const { user } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -28,16 +26,15 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    if (!user) return;
     const supabase = createClient();
     await supabase.from("admin_activity_log").insert({
-      admin_id: user.id,
+      admin_id: null,
       action,
       target_type: "user",
       target_id: targetId,
       details: details || null,
     });
-  }, [user]);
+  }, []);
 
   const fetchUsers = useCallback(async (reset = false) => {
     setLoading(true);

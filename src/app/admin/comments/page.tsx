@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
@@ -17,7 +16,6 @@ type CommentWithAuthor = Comment & { profiles: Database["public"]["Tables"]["pro
 const PAGE_SIZE = 20;
 
 export default function AdminCommentsPage() {
-  const { user } = useAuth();
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -28,16 +26,15 @@ export default function AdminCommentsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    if (!user) return;
     const supabase = createClient();
     await supabase.from("admin_activity_log").insert({
-      admin_id: user.id,
+      admin_id: null,
       action,
       target_type: "comment",
       target_id: targetId,
       details: details || null,
     });
-  }, [user]);
+  }, []);
 
   const fetchComments = useCallback(async (reset = false) => {
     setLoading(true);

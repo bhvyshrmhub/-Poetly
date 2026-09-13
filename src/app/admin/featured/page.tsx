@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Trash2, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
@@ -21,7 +20,6 @@ interface FeaturedItem extends FeaturedRow {
 }
 
 export default function AdminFeaturedPage() {
-  const { user } = useAuth();
   const [items, setItems] = useState<FeaturedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -33,16 +31,15 @@ export default function AdminFeaturedPage() {
   const [error, setError] = useState<string | null>(null);
 
   const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    if (!user) return;
     const supabase = createClient();
     await supabase.from("admin_activity_log").insert({
-      admin_id: user.id,
+      admin_id: null,
       action,
       target_type: "featured_content",
       target_id: targetId,
       details: details || null,
     });
-  }, [user]);
+  }, []);
 
   const fetchFeatured = useCallback(async () => {
     setLoading(true);

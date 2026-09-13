@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
@@ -15,8 +15,8 @@ import {
   Menu,
   X,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -31,52 +31,22 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading) {
-      console.log(`[ADMIN LAYOUT] authLoading=false, user=${user?.id || "null"}, isAdmin=${isAdmin}`);
+  // Middleware handles auth — if we're here, session is valid
+  // Login page doesn't use this layout (it's a standalone page)
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+      router.push("/admin/login");
+    } catch {
+      setSigningOut(false);
     }
-  }, [authLoading, user, isAdmin]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
-        <div className="text-sm text-text-tertiary">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-text-secondary mb-3">You must be signed in to access the admin panel.</p>
-          <Link href="/login" className="text-sm text-brand hover:text-brand-hover transition-colors">
-            Sign In
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full bg-error-subtle flex items-center justify-center mx-auto mb-4">
-            <span className="text-error text-lg font-medium">!</span>
-          </div>
-          <h1 className="text-lg font-medium text-text-primary mb-1">Access Denied</h1>
-          <p className="text-sm text-text-secondary mb-4">You do not have admin privileges.</p>
-          <Link href="/home" className="text-sm text-brand hover:text-brand-hover transition-colors">
-            Return to Poetly
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background-subtle">
@@ -108,8 +78,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               );
             })}
           </nav>
-          <div className="px-4 py-3 border-t border-border-subtle">
-            <p className="text-[10px] text-text-tertiary">Poetly Admin v1.0</p>
+          <div className="px-2 py-3 border-t border-border-subtle space-y-1">
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm w-full rounded-[var(--radius-sm)] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+            >
+              <LogOut size={16} strokeWidth={1.5} />
+              {signingOut ? "Signing out..." : "Sign Out"}
+            </button>
+            <p className="px-3 text-[10px] text-text-tertiary">Poetly Admin v1.0</p>
           </div>
         </aside>
 
@@ -159,6 +137,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   );
                 })}
               </nav>
+              <div className="px-2 py-3 border-t border-border-subtle">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-sm w-full rounded-[var(--radius-sm)] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+                >
+                  <LogOut size={16} strokeWidth={1.5} />
+                  {signingOut ? "Signing out..." : "Sign Out"}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -13,7 +12,6 @@ import Toast from "@/components/Toast";
 type Report = Database["public"]["Tables"]["reports"]["Row"];
 
 export default function AdminReportsPage() {
-  const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "reviewed" | "resolved" | "dismissed">("pending");
@@ -24,16 +22,15 @@ export default function AdminReportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    if (!user) return;
     const supabase = createClient();
     await supabase.from("admin_activity_log").insert({
-      admin_id: user.id,
+      admin_id: null,
       action,
       target_type: "report",
       target_id: targetId,
       details: details || null,
     });
-  }, [user]);
+  }, []);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -60,7 +57,7 @@ export default function AdminReportsPage() {
   const handleAction = async (action: string, reportId: string) => {
     setConfirm(null);
     const report = reports.find((r) => r.id === reportId);
-    if (!report || !user) return;
+    if (!report) return;
     const supabase = createClient();
 
     try {
@@ -69,7 +66,7 @@ export default function AdminReportsPage() {
           const { error } = await supabase.from("reports").update({
             status: "resolved",
             admin_note: adminNote || null,
-            resolved_by: user.id,
+            resolved_by: null,
             resolved_at: new Date().toISOString(),
           }).eq("id", reportId);
           if (error) throw error;
@@ -81,7 +78,7 @@ export default function AdminReportsPage() {
           const { error } = await supabase.from("reports").update({
             status: "dismissed",
             admin_note: adminNote || null,
-            resolved_by: user.id,
+            resolved_by: null,
             resolved_at: new Date().toISOString(),
           }).eq("id", reportId);
           if (error) throw error;
@@ -97,7 +94,7 @@ export default function AdminReportsPage() {
           const { error } = await supabase.from("reports").update({
             status: "resolved",
             admin_note: `Content hidden. ${adminNote || ""}`.trim(),
-            resolved_by: user.id,
+            resolved_by: null,
             resolved_at: new Date().toISOString(),
           }).eq("id", reportId);
           if (error) throw error;
@@ -113,7 +110,7 @@ export default function AdminReportsPage() {
           const { error } = await supabase.from("reports").update({
             status: "resolved",
             admin_note: `Content removed. ${adminNote || ""}`.trim(),
-            resolved_by: user.id,
+            resolved_by: null,
             resolved_at: new Date().toISOString(),
           }).eq("id", reportId);
           if (error) throw error;

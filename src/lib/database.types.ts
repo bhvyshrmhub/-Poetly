@@ -391,7 +391,7 @@ export interface Database {
       admin_activity_log: {
         Row: {
           id: string;
-          admin_id: string;
+          admin_id: string | null;
           action: string;
           target_type: string | null;
           target_id: string | null;
@@ -400,7 +400,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          admin_id: string;
+          admin_id?: string | null;
           action: string;
           target_type?: string | null;
           target_id?: string | null;
@@ -409,7 +409,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          admin_id?: string;
+          admin_id?: string | null;
           action?: string;
           target_type?: string | null;
           target_id?: string | null;

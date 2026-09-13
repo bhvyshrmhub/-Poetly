@@ -2,18 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
-import Toast from "@/components/Toast";
 
 type AdminUser = Database["public"]["Tables"]["admin_users"]["Row"];
 
 export default function AdminSettingsPage() {
-  const { user, adminRole } = useAuth();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<string | null>(null);
 
   const fetchAdmins = useCallback(async () => {
     try {
@@ -38,19 +34,19 @@ export default function AdminSettingsPage() {
 
       <div className="space-y-6">
         <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-5">
-          <h2 className="text-sm font-medium text-text-primary mb-2">Your Role</h2>
+          <h2 className="text-sm font-medium text-text-primary mb-2">Authentication</h2>
           <p className="text-xs text-text-tertiary leading-relaxed">
-            You are signed in as{" "}
-            <span className="text-brand font-medium">{adminRole || "admin"}</span>.
-            {adminRole === "moderator" && " You can review reports and moderate content, but cannot manage users or settings."}
+            Admin access uses dedicated username + password authentication,
+            separate from Google Sign-In used by normal Poetly users.
+            Admin credentials are stored as environment variables.
           </p>
         </div>
 
         <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-5">
           <h2 className="text-sm font-medium text-text-primary mb-2">Admin Roles</h2>
           <p className="text-xs text-text-tertiary leading-relaxed mb-3">
-            Roles determine what actions an admin can perform. The role system is stored
-            in the <code className="text-brand bg-brand-subtle px-1 py-0.5 rounded text-[11px]">admin_users</code> table.
+            Roles determine what actions an admin can perform. Stored in the{" "}
+            <code className="text-brand bg-brand-subtle px-1 py-0.5 rounded text-[11px]">admin_users</code> table.
           </p>
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -65,10 +61,10 @@ export default function AdminSettingsPage() {
         </div>
 
         <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-5">
-          <h2 className="text-sm font-medium text-text-primary mb-3">Current Admins</h2>
+          <h2 className="text-sm font-medium text-text-primary mb-3">Registered Admins</h2>
           {loading ? (
             <AdminSkeleton rows={2} />
-          ) : (
+          ) : admins.length > 0 ? (
             <div className="space-y-2">
               {admins.map((admin) => (
                 <div key={admin.id} className="flex items-center justify-between py-2 border-b border-border-subtle last:border-0">
@@ -77,7 +73,7 @@ export default function AdminSettingsPage() {
                       <span className="text-[10px] font-medium text-brand">{admin.user_id.slice(0, 2).toUpperCase()}</span>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-text-primary">{admin.user_id === user?.id ? "You" : admin.user_id.slice(0, 8) + "..."}</p>
+                      <p className="text-xs font-medium text-text-primary">{admin.user_id.slice(0, 8)}...</p>
                       <p className="text-[10px] text-text-tertiary capitalize">{admin.role}</p>
                     </div>
                   </div>
@@ -87,19 +83,20 @@ export default function AdminSettingsPage() {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-xs text-text-tertiary">No admin records found in database.</p>
           )}
         </div>
 
         <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-5">
           <h2 className="text-sm font-medium text-text-primary mb-2">Activity Log</h2>
           <p className="text-xs text-text-tertiary leading-relaxed">
-            All admin actions are logged in the <code className="text-brand bg-brand-subtle px-1 py-0.5 rounded text-[11px]">admin_activity_log</code> table
+            All admin actions are logged in the{" "}
+            <code className="text-brand bg-brand-subtle px-1 py-0.5 rounded text-[11px]">admin_activity_log</code> table
             for audit purposes. View the full log in the Activity tab.
           </p>
         </div>
       </div>
-
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

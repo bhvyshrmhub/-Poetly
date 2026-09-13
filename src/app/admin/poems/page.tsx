@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink, Star, EyeOff, RotateCcw, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -18,7 +17,6 @@ type PoemWithAuthor = Poem & { profiles: Database["public"]["Tables"]["profiles"
 const PAGE_SIZE = 20;
 
 export default function AdminPoemsPage() {
-  const { user } = useAuth();
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "published" | "hidden" | "removed" | "draft">("all");
@@ -29,16 +27,15 @@ export default function AdminPoemsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    if (!user) return;
     const supabase = createClient();
     await supabase.from("admin_activity_log").insert({
-      admin_id: user.id,
+      admin_id: null,
       action,
       target_type: "poem",
       target_id: targetId,
       details: details || null,
     });
-  }, [user]);
+  }, []);
 
   const fetchPoems = useCallback(async (reset = false) => {
     setLoading(true);
