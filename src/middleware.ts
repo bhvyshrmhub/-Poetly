@@ -25,9 +25,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user }, error: getUserError } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
@@ -39,38 +37,54 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = pathname.startsWith("/auth") || pathname === "/login";
   const isAdminRoute = pathname.startsWith("/admin");
 
+  // Diagnostic logging (safe — no tokens or secrets logged)
+  if (isAdminRoute) {
+    const cookieNames = request.cookies.getAll().map((c) => c.name);
+    const supabaseCookieNames = cookieNames.filter((n) => n.startsWith("sb-") || n.startsWith("supabase"));
+    console.log(`[MIDDLEWARE] ${pathname}`);
+    console.log(`[MIDDLEWARE] totalCookies=${cookieNames.length}, supabaseCookies=${supabaseCookieNames.length} names=[${supabaseCookieNames.join(",")}]`);
+    console.log(`[MIDDLEWARE] getUser error=${getUserError ? getUserError.message : "none"}`);
+    console.log(`[MIDDLEWARE] user=${user ? user.id : "null"}`);
+  }
+
+  // Block unauthenticated access to protected routes (including /admin)
   if (!user && !isPublicRoute && !isAuthRoute && !pathname.startsWith("/poem/") && !pathname.startsWith("/profile/")) {
+    if (isAdminRoute) {
+      console.log(`[MIDDLEWARE] REDIRECT → /login (no session)`);
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
+  // Authenticated users on auth routes → home
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 
-  if (isAdminRoute) {
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(url);
-    }
-
-    const { data: adminRecord } = await supabase
+  // Admin route authorization check
+  if (isAdminRoute && user) {
+    const { data: adminRecord, error: adminError } = await supabase
       .from("admin_users")
       .select("user_id")
       .eq("user_id", user.id)
       .single();
 
+    if (adminError) {
+      console.log(`[MIDDLEWARE] admin_users error: ${adminError.message} code=${adminError.code}`);
+    }
+
     if (!adminRecord) {
+      console.log(`[MIDDLEWARE] REDIRECT → /home (not admin)`);
       const url = request.nextUrl.clone();
       url.pathname = "/home";
       return NextResponse.redirect(url);
     }
+
+    console.log(`[MIDDLEWARE] ADMIN OK user=${user.id}`);
   }
 
   return supabaseResponse;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,6 +33,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, loading: authLoading, isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading) {
+      console.log(`[ADMIN LAYOUT] authLoading=false, user=${user?.id || "null"}, isAdmin=${isAdmin}`);
+    }
+  }, [authLoading, user, isAdmin]);
 
   if (authLoading) {
     return (
