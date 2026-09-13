@@ -52,11 +52,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isAdminRoute && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+  if (isAdminRoute) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    const { data: adminRecord } = await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!adminRecord) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/home";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

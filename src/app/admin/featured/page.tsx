@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Trash2, ExternalLink } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { Plus, Trash2, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 import { Database } from "@/lib/database.types";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
+import Toast from "@/components/Toast";
 
 type FeaturedRow = Database["public"]["Tables"]["featured_content"]["Row"];
 type Poem = Database["public"]["Tables"]["poems"]["Row"];
@@ -19,37 +21,67 @@ interface FeaturedItem extends FeaturedRow {
 }
 
 export default function AdminFeaturedPage() {
+  const { user } = useAuth();
   const [items, setItems] = useState<FeaturedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [addType, setAddType] = useState<"poem" | "prompt">("poem");
   const [availablePoems, setAvailablePoems] = useState<Poem[]>([]);
   const [availablePrompts, setAvailablePrompts] = useState<Prompt[]>([]);
-  const [confirm, setConfirm] = useState<{ id: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase.from("admin_activity_log").insert({
+      admin_id: user.id,
+      action,
+      target_type: "featured_content",
+      target_id: targetId,
+      details: details || null,
+    });
+  }, [user]);
 
   const fetchFeatured = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data } = await supabase.from("featured_content").select("*").order("position", { ascending: true });
-      const featured = (data as FeaturedRow[]) || [];
+      const supabase = createClient();
+      const { data: featured, error: fetchError } = await supabase
+        .from("featured_content")
+        .select("*")
+        .order("position", { ascending: true });
+      if (fetchError) throw fetchError;
 
-      const enriched = await Promise.all(
-        featured.map(async (f) => {
-          if (f.content_type === "poem") {
-            const { data: poem } = await supabase.from("poems").select("*").eq("id", f.content_id).single();
-            return { ...f, poem: poem as Poem };
-          }
-          if (f.content_type === "prompt") {
-            const { data: prompt } = await supabase.from("prompts").select("*").eq("id", f.content_id).single();
-            return { ...f, prompt: prompt as Prompt };
-          }
-          return f;
-        })
-      );
+      const featuredList = (featured as FeaturedRow[]) || [];
+
+      const poemIds = featuredList.filter((f) => f.content_type === "poem").map((f) => f.content_id);
+      const promptIds = featuredList.filter((f) => f.content_type === "prompt").map((f) => f.content_id);
+
+      const [poemsRes, promptsRes] = await Promise.all([
+        poemIds.length > 0
+          ? supabase.from("poems").select("*").in("id", poemIds)
+          : { data: [], error: null },
+        promptIds.length > 0
+          ? supabase.from("prompts").select("*").in("id", promptIds)
+          : { data: [], error: null },
+      ]);
+
+      const poemsMap = new Map((poemsRes.data as Poem[] || []).map((p) => [p.id, p]));
+      const promptsMap = new Map((promptsRes.data as Prompt[] || []).map((p) => [p.id, p]));
+
+      const enriched = featuredList.map((f) => ({
+        ...f,
+        poem: f.content_type === "poem" ? poemsMap.get(f.content_id) : undefined,
+        prompt: f.content_type === "prompt" ? promptsMap.get(f.content_id) : undefined,
+      }));
 
       setItems(enriched);
-    } catch (error) {
-      console.error("Failed to fetch featured content:", error);
+    } catch (err) {
+      setError("Failed to load featured content.");
+      console.error("Fetch featured error:", err);
     } finally {
       setLoading(false);
     }
@@ -59,39 +91,50 @@ export default function AdminFeaturedPage() {
 
   const loadAvailable = async () => {
     try {
+      const supabase = createClient();
       const [poemsRes, promptsRes] = await Promise.all([
-        supabase.from("poems").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(20),
-        supabase.from("prompts").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("poems").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(30),
+        supabase.from("prompts").select("*").order("created_at", { ascending: false }).limit(30),
       ]);
       setAvailablePoems((poemsRes.data as Poem[]) || []);
       setAvailablePrompts((promptsRes.data as Prompt[]) || []);
-    } catch (error) {
-      console.error("Failed to load available content:", error);
+    } catch (err) {
+      console.error("Load available content error:", err);
     }
   };
 
   const handleAdd = async (contentId: string) => {
+    const supabase = createClient();
     try {
       const maxPos = items.reduce((max, i) => Math.max(max, i.position), -1);
-      await supabase.from("featured_content").insert({
+      const { error } = await supabase.from("featured_content").insert({
         content_type: addType,
         content_id: contentId,
         position: maxPos + 1,
       });
+      if (error) throw error;
+      await logActivity("added_featured", contentId, addType);
       setShowAdd(false);
+      setToast("Content added to featured.");
       fetchFeatured();
-    } catch (error) {
-      console.error("Failed to add featured content:", error);
+    } catch (err) {
+      setToast("Failed to add featured content.");
+      console.error("Add featured error:", err);
     }
   };
 
   const handleRemove = async (id: string) => {
     setConfirm(null);
+    const supabase = createClient();
     try {
-      await supabase.from("featured_content").delete().eq("id", id);
+      const { error } = await supabase.from("featured_content").delete().eq("id", id);
+      if (error) throw error;
+      await logActivity("removed_featured", id);
+      setToast("Content removed from featured.");
       fetchFeatured();
-    } catch (error) {
-      console.error("Failed to remove featured content:", error);
+    } catch (err) {
+      setToast("Failed to remove featured content.");
+      console.error("Remove featured error:", err);
     }
   };
 
@@ -106,6 +149,7 @@ export default function AdminFeaturedPage() {
     const [moved] = updated.splice(idx, 1);
     updated.splice(swapIdx, 0, moved);
 
+    const supabase = createClient();
     try {
       await Promise.all(
         updated.map((item) =>
@@ -113,8 +157,9 @@ export default function AdminFeaturedPage() {
         )
       );
       setItems(updated);
-    } catch (error) {
-      console.error("Failed to reorder featured content:", error);
+    } catch (err) {
+      console.error("Reorder error:", err);
+      fetchFeatured();
     }
   };
 
@@ -133,6 +178,12 @@ export default function AdminFeaturedPage() {
         </button>
       </div>
 
+      {error && (
+        <div className="bg-error-subtle border border-error/20 rounded-[var(--radius-md)] p-4 mb-6">
+          <p className="text-sm text-error">{error}</p>
+        </div>
+      )}
+
       {loading ? (
         <AdminSkeleton rows={4} />
       ) : items.length > 0 ? (
@@ -143,16 +194,16 @@ export default function AdminFeaturedPage() {
                 <button
                   onClick={() => handleMove(item.id, "up")}
                   disabled={idx === 0}
-                  className="text-text-tertiary hover:text-text-primary disabled:opacity-30 transition-colors text-[10px]"
+                  className="text-text-tertiary hover:text-text-primary disabled:opacity-30 transition-colors"
                 >
-                  ▲
+                  <ChevronUp size={14} />
                 </button>
                 <button
                   onClick={() => handleMove(item.id, "down")}
                   disabled={idx === items.length - 1}
-                  className="text-text-tertiary hover:text-text-primary disabled:opacity-30 transition-colors text-[10px]"
+                  className="text-text-tertiary hover:text-text-primary disabled:opacity-30 transition-colors"
                 >
-                  ▼
+                  <ChevronDown size={14} />
                 </button>
               </div>
 
@@ -174,13 +225,19 @@ export default function AdminFeaturedPage() {
               </div>
 
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {item.poem && (
-                  <Link href={`/poem/${item.poem.id}`} className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors">
+                {(item.poem || item.prompt) && (
+                  <Link
+                    href={item.poem ? `/poem/${item.poem.id}` : `/prompts/${item.prompt!.id}`}
+                    className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors"
+                  >
                     <ExternalLink size={14} strokeWidth={1.5} />
                   </Link>
                 )}
                 <button
-                  onClick={() => setConfirm({ id: item.id })}
+                  onClick={() => setConfirm({
+                    id: item.id,
+                    title: item.poem?.title || item.prompt?.title || "this item",
+                  })}
                   className="p-1.5 text-text-tertiary hover:text-error transition-colors"
                 >
                   <Trash2 size={14} strokeWidth={1.5} />
@@ -196,7 +253,6 @@ export default function AdminFeaturedPage() {
         />
       )}
 
-      {/* Add modal */}
       {showAdd && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
           <div className="absolute inset-0 bg-black/40" />
@@ -235,6 +291,9 @@ export default function AdminFeaturedPage() {
                       <p className="text-sm font-medium text-text-primary truncate italic">&ldquo;{prompt.title}&rdquo;</p>
                     </button>
                   ))}
+              {((addType === "poem" && availablePoems.length === 0) || (addType === "prompt" && availablePrompts.length === 0)) && (
+                <p className="text-sm text-text-tertiary text-center py-4">No {addType}s available.</p>
+              )}
             </div>
             <button onClick={() => setShowAdd(false)} className="mt-4 text-xs text-text-tertiary hover:text-text-primary">Close</button>
           </div>
@@ -244,13 +303,15 @@ export default function AdminFeaturedPage() {
       {confirm && (
         <ConfirmDialog
           title="Remove from featured?"
-          message="This will remove the content from the featured list."
+          message={`This will remove "${confirm.title}" from the featured list.`}
           confirmLabel="Remove"
           danger
           onConfirm={() => handleRemove(confirm.id)}
           onCancel={() => setConfirm(null)}
         />
       )}
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

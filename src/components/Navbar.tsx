@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine, LogOut } from "lucide-react";
+import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
 
   const leftLinks = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/trending", label: "Trending", icon: TrendingUp },
     { href: "/search", label: "Search", icon: Search },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 
   const rightLinks = user

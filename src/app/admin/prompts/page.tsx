@@ -1,36 +1,89 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/lib/database.types";
+import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
 
+type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
+
 export default function AdminPromptsPage() {
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPrompts = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error: fetchError } = await supabase
+        .from("prompts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (fetchError) throw fetchError;
+      setPrompts((data as Prompt[]) || []);
+    } catch (err) {
+      setError("Failed to load prompts.");
+      console.error("Fetch prompts error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchPrompts(); }, [fetchPrompts]);
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-medium text-text-primary mb-1">Prompts</h1>
-        <p className="text-sm text-text-secondary">Manage writing prompts.</p>
-      </div>
-
-      <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-text-primary font-medium">Prompt Management</p>
-            <p className="text-xs text-text-tertiary mt-0.5">Create, edit, and manage writing prompts from the public prompts page.</p>
-          </div>
-          <Link
-            href="/prompts"
-            className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
-          >
-            Go to Prompts <ExternalLink size={12} strokeWidth={1.5} />
-          </Link>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-medium text-text-primary mb-1">Prompts</h1>
+          <p className="text-sm text-text-secondary">Manage writing prompts.</p>
         </div>
+        <Link
+          href="/prompts"
+          className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
+        >
+          Public Prompts <ExternalLink size={12} strokeWidth={1.5} />
+        </Link>
       </div>
 
-      <AdminEmptyState
-        title="Prompts are managed from the public interface."
-        description="Use the Prompts page to create and manage writing prompts. Prompt activation and archiving can be controlled from there."
-      />
+      {error && (
+        <div className="bg-error-subtle border border-error/20 rounded-[var(--radius-md)] p-4 mb-6">
+          <p className="text-sm text-error">{error}</p>
+        </div>
+      )}
+
+      {loading ? (
+        <AdminSkeleton rows={5} />
+      ) : prompts.length > 0 ? (
+        <div className="space-y-0">
+          {prompts.map((prompt) => (
+            <div key={prompt.id} className="flex items-center gap-4 py-4 border-b border-border-subtle">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-text-primary italic">&ldquo;{prompt.title}&rdquo;</p>
+                {prompt.description && (
+                  <p className="text-xs text-text-tertiary mt-0.5 line-clamp-1">{prompt.description}</p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-1">
+                  Created {new Date(prompt.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prompt.is_active ? "bg-success-subtle text-success" : "bg-surface-secondary text-text-tertiary"}`}>
+                  {prompt.is_active ? "Active" : "Inactive"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AdminEmptyState
+          title="No prompts yet"
+          description="Prompts are created from the public prompts interface."
+        />
+      )}
     </div>
   );
 }

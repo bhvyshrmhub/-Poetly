@@ -1,36 +1,90 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/lib/database.types";
+import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
 
+type Collection = Database["public"]["Tables"]["collections"]["Row"];
+
 export default function AdminCollectionsPage() {
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCollections = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error: fetchError } = await supabase
+        .from("collections")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (fetchError) throw fetchError;
+      setCollections((data as Collection[]) || []);
+    } catch (err) {
+      setError("Failed to load collections.");
+      console.error("Fetch collections error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCollections(); }, [fetchCollections]);
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-medium text-text-primary mb-1">Collections</h1>
-        <p className="text-sm text-text-secondary">Manage poem collections.</p>
-      </div>
-
-      <div className="bg-surface border border-border-subtle rounded-[var(--radius-md)] p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-text-primary font-medium">Collection Management</p>
-            <p className="text-xs text-text-tertiary mt-0.5">View and manage collections from the public collections page.</p>
-          </div>
-          <Link
-            href="/collections"
-            className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
-          >
-            Go to Collections <ExternalLink size={12} strokeWidth={1.5} />
-          </Link>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-medium text-text-primary mb-1">Collections</h1>
+          <p className="text-sm text-text-secondary">View user collections.</p>
         </div>
+        <Link
+          href="/collections"
+          className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
+        >
+          Public Collections <ExternalLink size={12} strokeWidth={1.5} />
+        </Link>
       </div>
 
-      <AdminEmptyState
-        title="Collections are managed from the public interface."
-        description="Use the Collections page to view and manage user collections."
-      />
+      {error && (
+        <div className="bg-error-subtle border border-error/20 rounded-[var(--radius-md)] p-4 mb-6">
+          <p className="text-sm text-error">{error}</p>
+        </div>
+      )}
+
+      {loading ? (
+        <AdminSkeleton rows={5} />
+      ) : collections.length > 0 ? (
+        <div className="space-y-0">
+          {collections.map((collection) => (
+            <div key={collection.id} className="flex items-center gap-4 py-4 border-b border-border-subtle">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-text-primary">{collection.title}</p>
+                {collection.description && (
+                  <p className="text-xs text-text-tertiary mt-0.5 line-clamp-1">{collection.description}</p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-1">
+                  Created {new Date(collection.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <Link
+                href={`/collections/${collection.id}`}
+                className="text-text-tertiary hover:text-text-primary transition-colors"
+              >
+                <ExternalLink size={14} />
+              </Link>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AdminEmptyState
+          title="No collections yet"
+          description="User collections will appear here."
+        />
+      )}
     </div>
   );
 }

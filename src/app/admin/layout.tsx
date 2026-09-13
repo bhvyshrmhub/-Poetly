@@ -9,38 +9,71 @@ import {
   Users,
   Flag,
   Star,
-  Lightbulb,
-  FolderOpen,
+  MessageSquare,
+  Activity,
   Settings,
   Menu,
   X,
   ChevronLeft,
 } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/poems", label: "Poems", icon: FileText },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/poems", label: "Poems", icon: FileText },
   { href: "/admin/reports", label: "Reports", icon: Flag },
+  { href: "/admin/comments", label: "Comments", icon: MessageSquare },
   { href: "/admin/featured", label: "Featured", icon: Star },
-  { href: "/admin/prompts", label: "Prompts", icon: Lightbulb },
-  { href: "/admin/collections", label: "Collections", icon: FolderOpen },
+  { href: "/admin/activity", label: "Activity", icon: Activity },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading: authLoading, isAdmin } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
+        <div className="text-sm text-text-tertiary">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm text-text-secondary mb-3">You must be signed in to access the admin panel.</p>
+          <Link href="/login" className="text-sm text-brand hover:text-brand-hover transition-colors">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background-subtle flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full bg-error-subtle flex items-center justify-center mx-auto mb-4">
+            <span className="text-error text-lg font-medium">!</span>
+          </div>
+          <h1 className="text-lg font-medium text-text-primary mb-1">Access Denied</h1>
+          <p className="text-sm text-text-secondary mb-4">You do not have admin privileges.</p>
+          <Link href="/home" className="text-sm text-brand hover:text-brand-hover transition-colors">
+            Return to Poetly
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background-subtle">
-      {/* Auth disabled banner */}
-      <div className="bg-warning-subtle border-b border-warning/20 px-4 py-2 text-center">
-        <p className="text-xs text-warning font-medium">
-          Admin authentication is currently disabled. All admin actions are in development mode.
-        </p>
-      </div>
-
       <div className="flex">
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex flex-col w-56 h-screen sticky top-0 bg-surface border-r border-border-subtle shrink-0">
