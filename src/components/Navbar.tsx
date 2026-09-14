@@ -2,37 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, TrendingUp, Search, Bell, BookMarked, User, PenLine, LogOut } from "lucide-react";
+import { Compass, Library, Search, Bell, User, PenLine, LogOut } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import Logo from "@/components/Logo";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, profile, signOut } = useAuth();
 
   const leftLinks = [
-    { href: "/home", label: "Home", icon: Home },
-    { href: "/trending", label: "Trending", icon: TrendingUp },
+    { href: "/explore", label: "Explore", icon: Compass },
+    { href: "/collections", label: "Collections", icon: Library },
     { href: "/search", label: "Search", icon: Search },
   ];
 
   const rightLinks = user
     ? [
         { href: "/notifications", label: "Notifications", icon: Bell },
-        { href: "/library", label: "Library", icon: BookMarked },
         { href: `/profile/${profile?.username || ""}`, label: "Profile", icon: User },
       ]
     : [];
 
   return (
     <nav className="hidden md:flex items-center justify-between px-6 h-[var(--nav-height)] border-b border-border-subtle bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-      <Link href="/home" className="flex items-center gap-2.5 mr-8">
-        <div className="w-7 h-7 rounded-[var(--radius-sm)] gradient-brand flex items-center justify-center">
-          <span className="text-white text-xs font-semibold">P</span>
-        </div>
-        <span className="font-display text-lg text-text-primary tracking-tight hidden lg:block">
-          Poetly
-        </span>
-      </Link>
+      <div className="mr-8">
+        <Logo size="sm" />
+      </div>
 
       <div className="flex items-center gap-1">
         {leftLinks.map((link) => {
@@ -57,10 +52,11 @@ export default function Navbar() {
 
       <Link
         href={user ? "/write" : "/login"}
-        className="flex items-center gap-2 px-4 py-1.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity shadow-sm"
+        className="flex items-center gap-2 px-5 py-2 text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity"
+        style={{ background: "var(--brand-primary)", minHeight: 44 }}
       >
         <PenLine size={15} strokeWidth={2} />
-        <span className="hidden lg:inline">Create</span>
+        <span className="hidden lg:inline">Write</span>
       </Link>
 
       <div className="flex items-center gap-1">

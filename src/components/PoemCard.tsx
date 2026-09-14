@@ -5,6 +5,7 @@ import { PoemWithAuthor } from "@/lib/types";
 import { Heart, MessageCircle, Bookmark } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
+import Tag from "@/components/ui/Tag";
 
 interface PoemCardProps {
   poem: PoemWithAuthor;
@@ -65,6 +66,15 @@ export default function PoemCard({ poem, variant = "default" }: PoemCardProps) {
           {preview}
           {poem.content.split("\n").length > 4 && <span className="text-text-tertiary">...</span>}
         </div>
+
+        {(poem.mood || (poem.tags && poem.tags.length > 0)) && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {poem.mood && <Tag label={poem.mood} />}
+            {(poem.tags || []).slice(0, 3).map((tag) => (
+              <Tag key={tag} label={tag} />
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-5">
           <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
