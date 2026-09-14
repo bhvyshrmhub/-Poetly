@@ -7,7 +7,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function RespondPage() {
@@ -90,12 +90,11 @@ export default function RespondPage() {
   };
 
   if (loading || !originalPoem) {
-    return <div className="min-h-screen"><Navbar /><div className="max-w-4xl mx-auto px-5 py-8"><div className="w-40 h-4 skeleton rounded" /></div></div>;
+    return <AppShell><div className="max-w-4xl mx-auto px-5 py-8"><div className="w-40 h-4 skeleton rounded" /></div></AppShell>;
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <div className="max-w-4xl mx-auto px-5 md:px-6 py-6 md:py-10">
         <div className="flex items-center justify-between mb-6">
           <Link href={`/poem/${id}`} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
@@ -137,6 +136,6 @@ export default function RespondPage() {
         </div>
       </div>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

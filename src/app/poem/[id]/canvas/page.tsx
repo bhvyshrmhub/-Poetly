@@ -10,7 +10,7 @@ import { Database } from "@/lib/database.types";
 import { CanvasState, getDefaultCanvasState } from "@/lib/canvas-types";
 import CanvasPreview from "@/components/canvas/CanvasPreview";
 import CanvasControls from "@/components/canvas/CanvasControls";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 type Poem = Database["public"]["Tables"]["poems"]["Row"];
@@ -112,30 +112,27 @@ export default function CanvasPage() {
 
   if (loading || !state) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-7xl mx-auto px-5 py-8">
           <div className="w-32 h-4 skeleton rounded mb-8" />
           <div className="h-[400px] skeleton rounded-[var(--radius-lg)]" />
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!poem) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center">
           <p className="font-poem text-xl text-text-tertiary italic">Poem not found.</p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href={`/poem/${poemId}`} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
@@ -170,6 +167,6 @@ export default function CanvasPage() {
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

@@ -3,8 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 
 export default function ProfilePage() {
   const { user, profile, loading } = useAuth();
@@ -22,24 +21,21 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-8">
           <div className="w-20 h-20 skeleton rounded-[var(--radius-md)] mb-5" />
           <div className="w-48 h-6 skeleton rounded mb-3" />
           <div className="w-32 h-4 skeleton rounded" />
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-16 text-center pb-24 md:pb-16">
         <p className="font-poem text-xl text-text-tertiary italic">Redirecting...</p>
       </main>
-      <MobileNav />
-    </div>
+    </AppShell>
   );
 }

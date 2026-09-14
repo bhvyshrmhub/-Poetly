@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 
 interface ResponseData {
   original: Record<string, unknown>;
@@ -57,8 +57,7 @@ export default function PoemResponsesPage() {
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12">
         <Link href={`/poem/${poemId}`} className="text-xs text-text-tertiary hover:text-text-primary transition-colors mb-6 block">
           Back to poem
@@ -86,6 +85,6 @@ export default function PoemResponsesPage() {
           </div>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

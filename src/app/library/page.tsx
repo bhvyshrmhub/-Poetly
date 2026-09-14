@@ -5,8 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Link from "next/link";
 
 export default function LibraryPage() {
@@ -50,34 +49,30 @@ export default function LibraryPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-8">
           <div className="w-48 h-6 skeleton rounded mb-6" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-32 skeleton rounded-[var(--radius-md)] mb-4" />
           ))}
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <main className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center pb-24 md:pb-16">
           <p className="font-poem text-xl text-text-tertiary italic mb-2">Sign in to save poems.</p>
           <Link href="/login" className="text-sm text-brand hover:text-brand-hover">Sign in →</Link>
         </main>
-        <MobileNav />
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-6 animate-fade-in">Saved Poems</h1>
 
@@ -91,7 +86,6 @@ export default function LibraryPage() {
           </div>
         )}
       </main>
-      <MobileNav />
-    </div>
+    </AppShell>
   );
 }

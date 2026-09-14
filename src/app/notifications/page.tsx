@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { NotificationWithActor } from "@/lib/types";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Link from "next/link";
 
 export default function NotificationsPage() {
@@ -50,8 +49,7 @@ export default function NotificationsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-8">
           <div className="w-48 h-6 skeleton rounded mb-6" />
           {[1, 2, 3].map((i) => (
@@ -64,20 +62,18 @@ export default function NotificationsPage() {
             </div>
           ))}
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <main className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center pb-24 md:pb-16">
           <p className="font-poem text-xl text-text-tertiary italic mb-2">Sign in to see notifications.</p>
           <Link href="/login" className="text-sm text-brand hover:text-brand-hover">Sign in →</Link>
         </main>
-        <MobileNav />
-      </div>
+      </AppShell>
     );
   }
 
@@ -94,8 +90,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-6 animate-fade-in">Notifications</h1>
 
@@ -123,7 +118,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </main>
-      <MobileNav />
-    </div>
+    </AppShell>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -103,16 +103,17 @@ export default function ProfileSetupPage() {
 
   if (checking || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 skeleton rounded-full" />
-      </div>
+      <AppShell>
+        <div className="max-w-lg mx-auto px-5 py-12 flex items-center justify-center">
+          <div className="w-6 h-6 skeleton rounded-full" />
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main className="max-w-lg mx-auto px-5 py-12 animate-fade-in">
+    <AppShell>
+      <div className="max-w-lg mx-auto px-5 py-12 animate-fade-in">
         <div className="text-center mb-10">
           <h1 className="font-poem-title text-2xl md:text-3xl text-text-primary mb-2">
             Welcome to Poetly
@@ -225,7 +226,7 @@ export default function ProfileSetupPage() {
             {loading ? "Creating your profile..." : "Start Writing"}
           </button>
         </form>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

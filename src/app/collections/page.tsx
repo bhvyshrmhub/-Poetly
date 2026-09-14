@@ -6,8 +6,7 @@ import { Plus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Collection } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function CollectionsPage() {
@@ -67,9 +66,8 @@ export default function CollectionsPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+    <AppShell>
+      <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="flex items-center justify-between mb-6 animate-fade-in">
           <div>
             <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Collections</h1>
@@ -132,9 +130,8 @@ export default function CollectionsPage() {
             <button onClick={() => setShowCreate(true)} className="text-sm font-medium text-brand hover:text-brand-hover transition-colors">Create your first collection</button>
           </div>
         )}
-      </main>
-      <MobileNav />
+      </div>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

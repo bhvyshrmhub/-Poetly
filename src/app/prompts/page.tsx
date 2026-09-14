@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Prompt } from "@/lib/types";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function PromptsPage() {
@@ -37,9 +36,8 @@ export default function PromptsPage() {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+    <AppShell>
+      <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-8 animate-fade-in">
           <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Writing Prompts</h1>
           <p className="text-sm text-text-secondary">Find your next poem.</p>
@@ -95,9 +93,8 @@ export default function PromptsPage() {
             </p>
           </div>
         )}
-      </main>
-      <MobileNav />
+      </div>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

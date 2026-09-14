@@ -8,8 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Profile, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function ProfileByUsernamePage() {
@@ -108,8 +107,7 @@ export default function ProfileByUsernamePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-8">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-20 h-20 skeleton rounded-[var(--radius-md)]" />
@@ -119,26 +117,23 @@ export default function ProfileByUsernamePage() {
             </div>
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center">
           <p className="font-poem text-xl text-text-tertiary italic">Profile not found.</p>
           <Link href="/home" className="text-sm text-brand hover:text-brand-hover mt-4 inline-block">Return home</Link>
         </div>
-        <MobileNav />
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8">
           <ArrowLeft size={14} strokeWidth={1.5} /> Back
@@ -207,8 +202,7 @@ export default function ProfileByUsernamePage() {
           </div>
         )}
       </main>
-      <MobileNav />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

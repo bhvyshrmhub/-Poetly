@@ -7,8 +7,7 @@ import { ArrowLeft, PenLine } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Prompt, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function PromptDetailPage() {
@@ -42,17 +41,16 @@ export default function PromptDetailPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
-    return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-48 h-6 skeleton rounded mb-4" /><div className="w-full h-20 skeleton rounded" /></div></div>;
+    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-48 h-6 skeleton rounded mb-4" /><div className="w-full h-20 skeleton rounded" /></div></AppShell>;
   }
 
   if (!prompt) {
-    return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Prompt not found.</p></div></div>;
+    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Prompt not found.</p></div></AppShell>;
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
+    <AppShell>
+      <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <Link href="/prompts" className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8">
           <ArrowLeft size={14} strokeWidth={1.5} /> Prompts
         </Link>
@@ -98,9 +96,8 @@ export default function PromptDetailPage() {
             </div>
           )}
         </div>
-      </main>
-      <MobileNav />
+      </div>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

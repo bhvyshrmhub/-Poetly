@@ -6,7 +6,7 @@ import { ArrowLeft, Eye, Save, Palette } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 const typographyOptions = [
@@ -31,7 +31,7 @@ const moodOptions = [
 
 export default function WritePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen"><Navbar /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" /></div>}>
       <WritePageInner />
     </Suspense>
   );
@@ -131,8 +131,7 @@ function WritePageInner() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <div className="max-w-5xl mx-auto px-5 md:px-6 py-5 md:py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href="/home" className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
@@ -213,6 +212,6 @@ function WritePageInner() {
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

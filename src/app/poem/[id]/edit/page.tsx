@@ -6,7 +6,7 @@ import { ArrowLeft, Save, Palette, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 type Poem = Database["public"]["Tables"]["poems"]["Row"];
@@ -118,8 +118,7 @@ export default function EditPoemPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-5xl mx-auto px-5 md:px-6 py-8">
           <div className="h-8 skeleton w-20 rounded mb-8" />
           <div className="h-10 skeleton w-64 rounded mb-8" />
@@ -127,13 +126,12 @@ export default function EditPoemPage() {
             {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-5 skeleton rounded" />)}
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <div className="max-w-5xl mx-auto px-5 md:px-6 py-5 md:py-8">
         <div className="flex items-center justify-between mb-6">
           <Link href={`/poem/${poemId}`} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors">
@@ -197,6 +195,6 @@ export default function EditPoemPage() {
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

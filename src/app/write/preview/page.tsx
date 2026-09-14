@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import { Suspense } from "react";
 
 function PreviewContent() {
@@ -28,11 +28,10 @@ function PreviewContent() {
 
 export default function PreviewPage() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <Suspense fallback={<div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="text-sm text-text-tertiary">Loading preview...</p></div>}>
         <PreviewContent />
       </Suspense>
-    </div>
+    </AppShell>
   );
 }

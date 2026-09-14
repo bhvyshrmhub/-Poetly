@@ -7,7 +7,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function PoemPage() {
@@ -165,8 +165,7 @@ export default function PoemPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8">
           <div className="w-40 h-4 skeleton mb-8 rounded" />
           <div className="w-12 h-12 skeleton mb-8 rounded-[var(--radius-sm)]" />
@@ -175,24 +174,22 @@ export default function PoemPage() {
             {[1, 2, 3, 4].map((i) => <div key={i} className="w-full h-4 skeleton rounded" />)}
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!poem) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center">
           <p className="font-poem text-xl text-text-tertiary italic">Poem not found.</p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <article className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-12">
         <Link href="/home" className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-10">
           <ArrowLeft size={14} strokeWidth={1.5} /> Back
@@ -293,6 +290,6 @@ export default function PoemPage() {
         </div>
       </article>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

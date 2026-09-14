@@ -7,8 +7,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Collection, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
 export default function CollectionDetailPage() {
@@ -71,16 +70,15 @@ export default function CollectionDetailPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-48 h-6 skeleton rounded mb-4" /><div className="w-64 h-4 skeleton rounded" /></div></div>;
+    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-48 h-6 skeleton rounded mb-4" /><div className="w-64 h-4 skeleton rounded" /></div></AppShell>;
   }
 
   if (!collection) {
-    return <div className="min-h-screen"><Navbar /><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Collection not found.</p></div></div>;
+    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Collection not found.</p></div></AppShell>;
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <Link href="/collections" className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8">
           <ArrowLeft size={14} strokeWidth={1.5} /> Collections
@@ -114,9 +112,8 @@ export default function CollectionDetailPage() {
           </div>
         )}
       </main>
-      <MobileNav />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }
 

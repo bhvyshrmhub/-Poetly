@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import Navbar from "@/components/Navbar";
-import MobileNav from "@/components/MobileNav";
+import AppShell from "@/components/shell/AppShell";
 
 export default function TrendingPage() {
   const [activeTab, setActiveTab] = useState<"trending" | "mostLoved" | "rising">("trending");
@@ -78,8 +77,7 @@ export default function TrendingPage() {
   ];
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <AppShell>
       <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
         <div className="mb-6 animate-fade-in">
           <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Discover</h1>
@@ -109,7 +107,6 @@ export default function TrendingPage() {
           )}
         </section>
       </main>
-      <MobileNav />
-    </div>
+    </AppShell>
   );
 }
