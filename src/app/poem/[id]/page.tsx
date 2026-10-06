@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, Edit2, Trash2, Flag } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
@@ -12,6 +12,7 @@ import Toast from "@/components/Toast";
 
 export default function PoemPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [poem, setPoem] = useState<PoemWithAuthor | null>(null);
@@ -20,87 +21,83 @@ export default function PoemPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const { user } = useAuth();
   const [responseCount, setResponseCount] = useState(0);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: poemData } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .eq("id", id)
-          .single();
+  const fetchPoemDetails = useCallback(async () => {
+    try {
+      const { data: poemData, error: poemError } = await supabase
+        .from("poems")
+        .select("*, profiles!inner(*)")
+        .eq("id", id)
+        .single();
 
-        if (poemData) {
-          setPoem(poemData as PoemWithAuthor);
-
-          const { count } = await supabase
-            .from("likes")
-            .select("*", { count: "exact", head: true })
-            .eq("poem_id", id);
-          setLikeCount(count || 0);
-
-          // Check if current user liked this poem
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          if (currentUser) {
-            const { data: existingLike } = await supabase
-              .from("likes")
-              .select("id")
-              .eq("poem_id", id)
-              .eq("user_id", currentUser.id)
-              .single();
-            setIsLiked(!!existingLike);
-
-            const { data: existingSave } = await supabase
-              .from("saves")
-              .select("id")
-              .eq("poem_id", id)
-              .eq("user_id", currentUser.id)
-              .single();
-            setIsSaved(!!existingSave);
-          }
-
-          const { count: resCount } = await supabase
-            .from("responses")
-            .select("*", { count: "exact", head: true })
-            .eq("original_poem_id", id);
-          setResponseCount(resCount || 0);
-
-          const { data: commentData } = await supabase
-            .from("comments")
-            .select("*, profiles!inner(*)")
-            .eq("poem_id", id)
-            .order("created_at", { ascending: true });
-          setComments((commentData as CommentWithAuthor[]) || []);
-        }
-      } catch {
-        setToast("Failed to load poem");
+      if (poemError || !poemData) {
+        setPoem(null);
+        setLoading(false);
+        return;
       }
+
+      setPoem(poemData as PoemWithAuthor);
+
+      const [likesRes, savesRes, resCountRes, commentData] = await Promise.all([
+        supabase.from("likes").select("*", { count: "exact", head: true }).eq("poem_id", id),
+        user
+          ? supabase.from("saves").select("id").eq("poem_id", id).eq("user_id", user.id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        supabase.from("responses").select("*", { count: "exact", head: true }).eq("original_poem_id", id),
+        supabase
+          .from("comments")
+          .select("*, profiles!inner(*)")
+          .eq("poem_id", id)
+          .order("created_at", { ascending: true }),
+      ]);
+
+      setLikeCount(likesRes.count || 0);
+      setIsSaved(Boolean(savesRes.data));
+      setResponseCount(resCountRes.count || 0);
+      setComments((commentData.data as CommentWithAuthor[]) || []);
+
+      if (user) {
+        const { data: existingLike } = await supabase
+          .from("likes")
+          .select("id")
+          .eq("poem_id", id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        setIsLiked(Boolean(existingLike));
+      }
+    } catch {
+      setToast("Failed to load poem");
+    } finally {
       setLoading(false);
-    })();
-  }, [id]);
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    fetchPoemDetails();
+  }, [fetchPoemDetails]);
 
   const handleLike = async () => {
     if (!user) {
-      setToast("You must be logged in");
+      router.push(`/login?redirect=${encodeURIComponent(`/poem/${id}`)}`);
       return;
     }
-    try {
-      if (isLiked) {
-        // Unlike
-        await supabase.from("likes").delete().eq("poem_id", id).eq("user_id", user.id);
-        setLikeCount(Math.max(0, likeCount - 1));
-        setIsLiked(false);
-      } else {
-        // Like
-        await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
-        setLikeCount(likeCount + 1);
-        setIsLiked(true);
+    const previousLiked = isLiked;
+    const previousCount = likeCount;
 
-        // Notify poem author (don't notify self)
+    setIsLiked(!previousLiked);
+    setLikeCount(previousLiked ? Math.max(0, previousCount - 1) : previousCount + 1);
+
+    try {
+      if (previousLiked) {
+        await supabase.from("likes").delete().eq("poem_id", id).eq("user_id", user.id);
+      } else {
+        await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
+
         if (poem && user.id !== poem.author_id) {
           await supabase.from("notifications").insert({
             recipient_id: poem.author_id,
@@ -111,27 +108,38 @@ export default function PoemPage() {
         }
       }
     } catch {
+      setIsLiked(previousLiked);
+      setLikeCount(previousCount);
       setToast("Failed to update like");
     }
   };
 
   const handleComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || submittingComment) return;
     if (!user) {
-      setToast("You must be logged in");
+      router.push(`/login?redirect=${encodeURIComponent(`/poem/${id}`)}`);
       return;
     }
+    setSubmittingComment(true);
+
     try {
-      await supabase.from("comments").insert({ poem_id: id, author_id: user.id, content: commentText.trim() });
+      const { error } = await supabase.from("comments").insert({
+        poem_id: id,
+        author_id: user.id,
+        content: commentText.trim(),
+      });
+
+      if (error) throw error;
+
       setCommentText("");
-      const { data: commentData } = await supabase
+      const { data: updatedComments } = await supabase
         .from("comments")
         .select("*, profiles!inner(*)")
         .eq("poem_id", id)
         .order("created_at", { ascending: true });
-      setComments((commentData as CommentWithAuthor[]) || []);
 
-      // Notify poem author (don't notify self)
+      setComments((updatedComments as CommentWithAuthor[]) || []);
+
       if (poem && user.id !== poem.author_id) {
         await supabase.from("notifications").insert({
           recipient_id: poem.author_id,
@@ -140,26 +148,69 @@ export default function PoemPage() {
           reference_id: id,
         });
       }
+      setToast("Note posted");
     } catch {
-      setToast("Failed to post comment");
+      setToast("Failed to post note");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId)
+        .eq("author_id", user.id);
+
+      if (!error) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setToast("Note deleted");
+      }
+    } catch {
+      setToast("Failed to delete note");
     }
   };
 
   const handleSave = async () => {
     if (!user) {
-      setToast("You must be logged in");
+      router.push(`/login?redirect=${encodeURIComponent(`/poem/${id}`)}`);
+      return;
+    }
+    const previousSaved = isSaved;
+    setIsSaved(!previousSaved);
+
+    try {
+      if (previousSaved) {
+        await supabase.from("saves").delete().eq("poem_id", id).eq("user_id", user.id);
+        setToast("Poem unsaved");
+      } else {
+        await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
+        setToast("Poem saved to your library");
+      }
+    } catch {
+      setIsSaved(previousSaved);
+      setToast("Failed to save poem");
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/poem/${id}`)}`);
       return;
     }
     try {
-      if (isSaved) {
-        await supabase.from("saves").delete().eq("poem_id", id).eq("user_id", user.id);
-        setIsSaved(false);
-      } else {
-        await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
-        setIsSaved(true);
-      }
+      await supabase.from("reports").insert({
+        reporter_id: user.id,
+        target_type: "poem",
+        target_id: id,
+        reason: "Inappropriate or abusive content",
+      });
+      setToast("Thank you. Report received for review.");
     } catch {
-      setToast("Failed to save poem");
+      setToast("Failed to submit report");
     }
   };
 
@@ -171,7 +222,9 @@ export default function PoemPage() {
           <div className="w-12 h-12 skeleton mb-8 rounded-[var(--radius-sm)]" />
           <div className="w-64 h-8 skeleton mb-10 rounded" />
           <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => <div key={i} className="w-full h-4 skeleton rounded" />)}
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="w-full h-4 skeleton rounded" />
+            ))}
           </div>
         </div>
       </AppShell>
@@ -183,68 +236,130 @@ export default function PoemPage() {
       <AppShell>
         <div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center">
           <p className="font-poem text-xl text-text-tertiary italic">Poem not found.</p>
+          <Link href="/home" className="text-sm text-brand hover:text-brand-hover mt-4 inline-block">
+            Return home
+          </Link>
         </div>
       </AppShell>
     );
   }
 
+  const isAuthor = user && poem && user.id === poem.author_id;
+
   return (
     <AppShell>
       <article className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-12">
-        <Link href="/home" className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-10">
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back
-        </Link>
+        <div className="flex items-center justify-between mb-10">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <ArrowLeft size={14} strokeWidth={1.5} /> Back
+          </button>
+          {isAuthor && (
+            <Link
+              href={`/poem/${id}/edit`}
+              className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-brand transition-colors border border-border-subtle rounded-full px-3 py-1"
+            >
+              <Edit2 size={12} /> Edit poem
+            </Link>
+          )}
+        </div>
 
         <div className="animate-fade-in">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center">
-              <span className="text-brand text-sm font-display font-medium">{poem.profiles.display_name[0]}</span>
+            <div className="w-10 h-10 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
+              {poem.profiles.profile_image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={poem.profiles.profile_image} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-brand text-sm font-display font-medium">
+                  {poem.profiles.display_name[0]}
+                </span>
+              )}
             </div>
             <div>
-              <Link href={`/profile/${poem.profiles.username}`} className="text-sm font-medium text-text-primary hover:text-brand transition-colors">
+              <Link
+                href={`/profile/${poem.profiles.username}`}
+                className="text-sm font-medium text-text-primary hover:text-brand transition-colors"
+              >
                 {poem.profiles.display_name}
               </Link>
-              <p className="text-xs text-text-tertiary">@{poem.profiles.username} · {new Date(poem.published_at || poem.created_at).toLocaleDateString()}</p>
+              <p className="text-xs text-text-tertiary">
+                @{poem.profiles.username} · {new Date(poem.published_at || poem.created_at).toLocaleDateString()}
+              </p>
             </div>
           </div>
 
           <h1 className="font-poem-title text-3xl md:text-[2.75rem] text-text-primary mb-10">{poem.title}</h1>
-          <div className="poem-content-lg text-text-primary/85 mb-10">{poem.content}</div>
+          <div className="poem-content-lg text-text-primary/90 mb-10 leading-relaxed font-poem whitespace-pre-line">
+            {poem.content}
+          </div>
 
           {poem.tags && poem.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-10">
               {poem.tags.map((tag) => (
-                <span key={tag} className="text-xs text-text-tertiary bg-surface-secondary px-2.5 py-1 rounded-full">#{tag}</span>
+                <Link
+                  key={tag}
+                  href={`/search?tag=${encodeURIComponent(tag)}`}
+                  className="text-xs text-text-tertiary bg-surface-secondary px-2.5 py-1 rounded-full hover:text-brand transition-colors"
+                >
+                  #{tag}
+                </Link>
               ))}
             </div>
           )}
 
           <div className="flex items-center gap-5 py-5 border-y border-border-subtle mb-8">
-            <button onClick={handleLike} className={`flex items-center gap-2 text-sm transition-all duration-150 ${isLiked ? "text-error" : "text-text-tertiary hover:text-text-secondary"}`}>
-              <Heart size={17} strokeWidth={1.5} fill={isLiked ? "currentColor" : "none"} />
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-2 text-sm transition-all duration-150 ${
+                isLiked ? "text-error" : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              <Heart size={18} strokeWidth={1.5} fill={isLiked ? "currentColor" : "none"} />
               <span>{likeCount}</span>
             </button>
             <span className="flex items-center gap-2 text-sm text-text-tertiary">
-              <MessageCircle size={17} strokeWidth={1.5} /><span>{comments.length}</span>
+              <MessageCircle size={18} strokeWidth={1.5} />
+              <span>{comments.length}</span>
             </span>
-            <button onClick={handleSave} className={`flex items-center gap-2 text-sm transition-colors ${isSaved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"}`}>
-              <Bookmark size={17} strokeWidth={1.5} fill={isSaved ? "currentColor" : "none"} />
+            <button
+              onClick={handleSave}
+              className={`flex items-center gap-2 text-sm transition-colors ${
+                isSaved ? "text-brand" : "text-text-tertiary hover:text-text-secondary"
+              }`}
+              title={isSaved ? "Unsave" : "Save poem"}
+            >
+              <Bookmark size={18} strokeWidth={1.5} fill={isSaved ? "currentColor" : "none"} />
             </button>
             <button
               onClick={() => {
+                const url = window.location.href;
                 if (navigator.share) {
-                  navigator.share({ title: poem.title, url: window.location.href });
+                  navigator.share({ title: poem.title, url }).catch(() => {});
                 } else {
-                  navigator.clipboard.writeText(window.location.href);
-                  setToast("Link copied");
+                  navigator.clipboard.writeText(url);
+                  setToast("Link copied to clipboard");
                 }
               }}
               className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+              title="Share"
             >
-              <Share2 size={17} strokeWidth={1.5} />
+              <Share2 size={18} strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={handleReport}
+              className="text-text-tertiary hover:text-error transition-colors text-xs flex items-center gap-1"
+              title="Report content"
+            >
+              <Flag size={13} />
             </button>
             {responseCount > 0 && (
-              <Link href={`/poem/${id}/responses`} className="flex items-center gap-2 text-sm text-brand hover:text-brand-hover transition-colors ml-auto">
+              <Link
+                href={`/poem/${id}/responses`}
+                className="flex items-center gap-1 text-sm text-brand hover:text-brand-hover transition-colors ml-auto"
+              >
                 {responseCount} {responseCount === 1 ? "response" : "responses"} →
               </Link>
             )}
@@ -253,33 +368,73 @@ export default function PoemPage() {
           <div className="text-center mb-10 py-6 bg-surface-secondary rounded-[var(--radius-lg)] space-y-3">
             <p className="text-sm text-text-secondary">Not a comment. A poem.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href={`/poem/${id}/respond`} className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity">
+              <Link
+                href={`/poem/${id}/respond`}
+                className="inline-flex items-center justify-center px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity"
+              >
                 Respond with a poem
               </Link>
-              <Link href={`/poem/${id}/canvas`} className="inline-flex items-center justify-center px-5 py-2.5 border border-border-default text-text-primary text-sm font-medium rounded-[var(--radius-full)] hover:border-brand hover:text-brand transition-colors">
+              <Link
+                href={`/poem/${id}/canvas`}
+                className="inline-flex items-center justify-center px-5 py-2.5 border border-border-default text-text-primary text-sm font-medium rounded-[var(--radius-full)] hover:border-brand hover:text-brand transition-colors"
+              >
                 Create Canvas
               </Link>
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-border-subtle">
+          <div className="mt-12 pt-8 border-t border-border-subtle" id="comments">
             <h3 className="font-poem text-lg font-medium text-text-primary mb-6">Leave a note</h3>
             <div className="mb-8">
-              <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a note..." className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-3 px-4 text-sm text-text-primary placeholder:text-text-tertiary resize-none" rows={2} />
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Write a note to the author..."
+                className="w-full bg-surface-secondary border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none py-3 px-4 text-sm text-text-primary placeholder:text-text-tertiary resize-none"
+                rows={2}
+              />
               <div className="flex justify-end mt-2">
-                <button onClick={handleComment} disabled={!commentText.trim()} className="text-xs font-medium text-brand hover:text-brand-hover transition-colors px-3 py-1 disabled:opacity-30">Post</button>
+                <button
+                  onClick={handleComment}
+                  disabled={!commentText.trim() || submittingComment}
+                  className="text-xs font-medium text-white gradient-brand px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  {submittingComment ? "Posting..." : "Post note"}
+                </button>
               </div>
             </div>
             <div className="space-y-5">
               {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <div className="w-7 h-7 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-brand text-[10px] font-display font-medium">{comment.profiles.display_name[0]}</span>
+                <div key={comment.id} className="flex gap-3 group">
+                  <div className="w-7 h-7 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
+                    {comment.profiles?.profile_image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={comment.profiles.profile_image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-brand text-[10px] font-display font-medium">
+                        {comment.profiles?.display_name?.[0] || "?"}
+                      </span>
+                    )}
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-medium text-text-primary">@{comment.profiles.username}</span>
-                      <span className="text-xs text-text-tertiary">{new Date(comment.created_at).toLocaleDateString()}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/profile/${comment.profiles?.username}`} className="text-xs font-medium text-text-primary hover:text-brand">
+                          @{comment.profiles?.username}
+                        </Link>
+                        <span className="text-xs text-text-tertiary">
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {user && user.id === comment.author_id && (
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-error transition-all"
+                          title="Delete note"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                     <p className="text-sm text-text-secondary leading-relaxed">{comment.content}</p>
                   </div>

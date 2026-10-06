@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
 
 type ActivityLog = Database["public"]["Tables"]["admin_activity_log"]["Row"];
-
-const PAGE_SIZE = 30;
 
 export default function AdminActivityPage() {
   const [entries, setEntries] = useState<ActivityLog[]>([]);
@@ -17,54 +14,34 @@ export default function AdminActivityPage() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActivity = useCallback(async (reset = false) => {
+  const fetchActivity = useCallback(async (reset = false, customPage?: number) => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const offset = reset ? 0 : page * PAGE_SIZE;
-      const { data, error: fetchError } = await supabase
-        .from("admin_activity_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
-      if (fetchError) throw fetchError;
+      const pageToFetch = reset ? 0 : customPage !== undefined ? customPage : page;
+      const res = await fetch(`/api/admin/data?type=activity&page=${pageToFetch}`);
+      if (!res.ok) throw new Error("Failed to load activity");
+      const json = await res.json();
+      const typedData = (json.entries as ActivityLog[]) || [];
 
-      const typedData = (data as ActivityLog[]) || [];
-      setEntries(reset ? typedData : [...entries, ...typedData]);
-      setHasMore(typedData.length === PAGE_SIZE);
+      if (reset) {
+        setEntries(typedData);
+        setPage(0);
+      } else {
+        setEntries((prev) => (pageToFetch === 0 ? typedData : [...prev, ...typedData]));
+      }
+      setHasMore(Boolean(json.hasMore));
     } catch (err) {
       setError("Failed to load activity log.");
       console.error("Fetch activity error:", err);
     } finally {
       setLoading(false);
     }
-  }, [page, entries]);
+  }, [page]);
 
   useEffect(() => {
-    setPage(0);
-    setLoading(true);
-    const load = async () => {
-      setError(null);
-      try {
-        const supabase = createClient();
-        const { data, error: fetchError } = await supabase
-          .from("admin_activity_log")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .range(0, PAGE_SIZE - 1);
-        if (fetchError) throw fetchError;
-        setEntries((data as ActivityLog[]) || []);
-        setHasMore((data as ActivityLog[])?.length === PAGE_SIZE);
-      } catch (err) {
-        setError("Failed to load activity log.");
-        console.error("Fetch activity error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    fetchActivity(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatAction = (action: string) => {
     return action

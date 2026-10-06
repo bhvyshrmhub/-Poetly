@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -12,8 +11,6 @@ import AdminEmptyState from "@/components/admin/EmptyState";
 import Toast from "@/components/Toast";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
-const PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -25,86 +22,52 @@ export default function AdminUsersPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    const supabase = createClient();
-    await supabase.from("admin_activity_log").insert({
-      admin_id: null,
-      action,
-      target_type: "user",
-      target_id: targetId,
-      details: details || null,
-    });
-  }, []);
-
-  const fetchUsers = useCallback(async (reset = false) => {
+  const fetchUsers = useCallback(async (reset = false, customPage?: number) => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const offset = reset ? 0 : page * PAGE_SIZE;
-      let query = supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+      const pageToFetch = reset ? 0 : customPage !== undefined ? customPage : page;
+      const res = await fetch(`/api/admin/data?type=users&page=${pageToFetch}&search=${encodeURIComponent(search)}`);
+      if (!res.ok) throw new Error("Failed to load users");
+      const json = await res.json();
+      const typedData = (json.users as Profile[]) || [];
 
-      if (search.trim()) {
-        query = query.or(`display_name.ilike.%${search}%,username.ilike.%${search}%`);
+      if (reset) {
+        setUsers(typedData);
+        setPage(0);
+      } else {
+        setUsers((prev) => (pageToFetch === 0 ? typedData : [...prev, ...typedData]));
       }
-
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-
-      const typedData = (data as Profile[]) || [];
-      setUsers(reset ? typedData : [...users, ...typedData]);
-      setHasMore(typedData.length === PAGE_SIZE);
+      setHasMore(Boolean(json.hasMore));
     } catch (err) {
       setError("Failed to load users. Please try again.");
       console.error("Fetch users error:", err);
     } finally {
       setLoading(false);
     }
-  }, [search, page, users]);
+  }, [search, page]);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      setPage(0);
-      setLoading(true);
-      setError(null);
-      try {
-        const supabase = createClient();
-        let query = supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .range(0, PAGE_SIZE - 1);
-        if (search.trim()) {
-          query = query.or(`display_name.ilike.%${search}%,username.ilike.%${search}%`);
-        }
-        const { data, error: fetchError } = await query;
-        if (fetchError) throw fetchError;
-        setUsers((data as Profile[]) || []);
-        setHasMore((data as Profile[])?.length === PAGE_SIZE);
-      } catch (err) {
-        setError("Failed to load users. Please try again.");
-        console.error("Fetch users error:", err);
-      } finally {
-        setLoading(false);
-      }
+    const timer = setTimeout(() => {
+      fetchUsers(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStatusChange = async (userId: string, newStatus: "active" | "suspended" | "banned", userName: string) => {
     setConfirm(null);
-    const supabase = createClient();
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: newStatus })
-        .eq("id", userId);
-      if (error) throw error;
-      await logActivity(`${newStatus}_user`, userId, userName);
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_user_status",
+          userId,
+          status: newStatus,
+          userName,
+        }),
+      });
+      if (!res.ok) throw new Error("Status update failed");
       setToast(`User ${newStatus === "active" ? "restored" : newStatus}.`);
       fetchUsers(true);
     } catch (err) {

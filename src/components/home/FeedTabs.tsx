@@ -1,36 +1,32 @@
 "use client";
 
-import { useState } from "react";
+export type FeedTabType = "for-you" | "following" | "new-voices" | "trending";
 
-const tabs = [
+const tabs: { id: FeedTabType; label: string }[] = [
   { id: "for-you", label: "For You" },
   { id: "following", label: "Following" },
   { id: "new-voices", label: "New Voices" },
   { id: "trending", label: "Trending" },
 ];
 
-export default function FeedTabs() {
-  const [activeTab, setActiveTab] = useState("for-you");
+interface FeedTabsProps {
+  activeTab?: FeedTabType;
+  onTabChange?: (tab: FeedTabType) => void;
+}
 
+export default function FeedTabs({ activeTab = "for-you", onTabChange }: FeedTabsProps) {
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="feed-tabs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => onTabChange?.(tab.id)}
             className={`feed-tab ${activeTab === tab.id ? "active" : ""}`}
           >
             {tab.label}
           </button>
         ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <select className="text-xs text-text-secondary bg-transparent border-none focus:outline-none cursor-pointer">
-          <option value="recent">Recent</option>
-          <option value="popular">Popular</option>
-          <option value="discussed">Discussed</option>
-        </select>
       </div>
     </div>
   );

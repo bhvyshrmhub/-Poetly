@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
@@ -17,13 +16,10 @@ export default function AdminPromptsPage() {
 
   const fetchPrompts = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data, error: fetchError } = await supabase
-        .from("prompts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (fetchError) throw fetchError;
-      setPrompts((data as Prompt[]) || []);
+      const res = await fetch("/api/admin/data?type=prompts");
+      if (!res.ok) throw new Error("Failed to load prompts");
+      const json = await res.json();
+      setPrompts((json.prompts as Prompt[]) || []);
     } catch (err) {
       setError("Failed to load prompts.");
       console.error("Fetch prompts error:", err);

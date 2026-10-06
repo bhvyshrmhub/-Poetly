@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 
@@ -13,9 +12,10 @@ export default function AdminSettingsPage() {
 
   const fetchAdmins = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data } = await supabase.from("admin_users").select("*").order("created_at", { ascending: true });
-      setAdmins((data as AdminUser[]) || []);
+      const res = await fetch("/api/admin/data?type=settings");
+      if (!res.ok) throw new Error("Failed to load admin settings");
+      const json = await res.json();
+      setAdmins((json.admins as AdminUser[]) || []);
     } catch (err) {
       console.error("Fetch admins error:", err);
     } finally {

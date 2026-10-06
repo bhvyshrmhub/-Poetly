@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
@@ -31,58 +30,26 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const supabase = createClient();
-      const [users, poems, publishedPoems, draftPoems, reports, pendingReports, comments, featured] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("poems").select("id", { count: "exact", head: true }),
-        supabase.from("poems").select("id", { count: "exact", head: true }).eq("status", "published"),
-        supabase.from("poems").select("id", { count: "exact", head: true }).eq("status", "draft"),
-        supabase.from("reports").select("id", { count: "exact", head: true }),
-        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("comments").select("id", { count: "exact", head: true }),
-        supabase.from("featured_content").select("id", { count: "exact", head: true }),
-      ]);
-
-      setStats({
-        users: users.count || 0,
-        poems: poems.count || 0,
-        publishedPoems: publishedPoems.count || 0,
-        draftPoems: draftPoems.count || 0,
-        reports: reports.count || 0,
-        pendingReports: pendingReports.count || 0,
-        comments: comments.count || 0,
-        featured: featured.count || 0,
-      });
+      const res = await fetch("/api/admin/data?type=dashboard");
+      if (!res.ok) throw new Error("Failed to load dashboard data");
+      const json = await res.json();
+      if (json.stats) setStats(json.stats);
+      if (json.activity) setActivity(json.activity);
     } catch (err) {
       setError("Failed to load dashboard statistics.");
       console.error("Dashboard stats error:", err);
-    }
-  }, []);
-
-  const fetchActivity = useCallback(async () => {
-    try {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("admin_activity_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setActivity((data as ActivityEntry[]) || []);
-    } catch (err) {
-      console.error("Activity log error:", err);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      await Promise.all([fetchStats(), fetchActivity()]);
-      setLoading(false);
-    };
-    load();
-  }, [fetchStats, fetchActivity]);
+    loadDashboard();
+  }, [loadDashboard]);
 
   if (loading) {
     return (

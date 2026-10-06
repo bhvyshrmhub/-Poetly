@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
@@ -12,8 +11,6 @@ import Toast from "@/components/Toast";
 
 type Comment = Database["public"]["Tables"]["comments"]["Row"];
 type CommentWithAuthor = Comment & { profiles: Database["public"]["Tables"]["profiles"]["Row"] };
-
-const PAGE_SIZE = 20;
 
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
@@ -25,83 +22,51 @@ export default function AdminCommentsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    const supabase = createClient();
-    await supabase.from("admin_activity_log").insert({
-      admin_id: null,
-      action,
-      target_type: "comment",
-      target_id: targetId,
-      details: details || null,
-    });
-  }, []);
-
-  const fetchComments = useCallback(async (reset = false) => {
+  const fetchComments = useCallback(async (reset = false, customPage?: number) => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const offset = reset ? 0 : page * PAGE_SIZE;
-      let query = supabase
-        .from("comments")
-        .select("*, profiles!inner(*)")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+      const pageToFetch = reset ? 0 : customPage !== undefined ? customPage : page;
+      const res = await fetch(`/api/admin/data?type=comments&page=${pageToFetch}&search=${encodeURIComponent(search)}`);
+      if (!res.ok) throw new Error("Failed to load comments");
+      const json = await res.json();
+      const typedData = (json.comments as CommentWithAuthor[]) || [];
 
-      if (search.trim()) {
-        query = query.ilike("content", `%${search}%`);
+      if (reset) {
+        setComments(typedData);
+        setPage(0);
+      } else {
+        setComments((prev) => (pageToFetch === 0 ? typedData : [...prev, ...typedData]));
       }
-
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-
-      const typedData = (data as CommentWithAuthor[]) || [];
-      setComments(reset ? typedData : [...comments, ...typedData]);
-      setHasMore(typedData.length === PAGE_SIZE);
+      setHasMore(Boolean(json.hasMore));
     } catch (err) {
       setError("Failed to load comments.");
       console.error("Fetch comments error:", err);
     } finally {
       setLoading(false);
     }
-  }, [search, page, comments]);
+  }, [search, page]);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      setPage(0);
-      setLoading(true);
-      setError(null);
-      try {
-        const supabase = createClient();
-        let query = supabase
-          .from("comments")
-          .select("*, profiles!inner(*)")
-          .order("created_at", { ascending: false })
-          .range(0, PAGE_SIZE - 1);
-        if (search.trim()) {
-          query = query.ilike("content", `%${search}%`);
-        }
-        const { data, error: fetchError } = await query;
-        if (fetchError) throw fetchError;
-        setComments((data as CommentWithAuthor[]) || []);
-        setHasMore((data as CommentWithAuthor[])?.length === PAGE_SIZE);
-      } catch (err) {
-        setError("Failed to load comments.");
-        console.error("Fetch comments error:", err);
-      } finally {
-        setLoading(false);
-      }
+    const timer = setTimeout(() => {
+      fetchComments(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (commentId: string, content: string) => {
     setConfirm(null);
-    const supabase = createClient();
     try {
-      const { error } = await supabase.from("comments").delete().eq("id", commentId);
-      if (error) throw error;
-      await logActivity("deleted_comment", commentId, content.slice(0, 80));
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete_comment",
+          commentId,
+          content,
+        }),
+      });
+      if (!res.ok) throw new Error("Delete comment failed");
       setToast("Comment deleted.");
       fetchComments(true);
     } catch (err) {

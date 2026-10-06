@@ -1,53 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-function base64urlDecode(data: string): string {
-  let base64 = data.replace(/-/g, "+").replace(/_/g, "/");
-  while (base64.length % 4) base64 += "=";
-  return Buffer.from(base64, "base64").toString();
-}
-
-async function verifyAdminSession(cookieValue: string): Promise<boolean> {
-  const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) return false;
-
-  const parts = cookieValue.split(".");
-  if (parts.length !== 2) return false;
-
-  const [dataB64, sigHex] = parts;
-  const data = base64urlDecode(dataB64);
-
-  // Check expiration
-  const colonIdx = data.lastIndexOf(":");
-  if (colonIdx === -1) return false;
-  const expires = parseInt(data.substring(colonIdx + 1), 10);
-  if (isNaN(expires) || Math.floor(Date.now() / 1000) > expires) return false;
-
-  // Verify HMAC signature
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"]
-  );
-
-  const sigBytes = new Uint8Array(
-    sigHex.match(/.{2}/g)!.map((h) => parseInt(h, 16))
-  );
-
-  return crypto.subtle.verify("HMAC", key, sigBytes, encoder.encode(data));
-}
+import { verifyAdminSession } from "@/lib/admin-auth";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
-
   const pathname = request.nextUrl.pathname;
 
-  // ── Admin routes (excluding /admin/login and /api/admin/*) ──
-  const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/login";
-  const isAdminApiRoute = pathname.startsWith("/api/admin/");
+  // ── Admin routes ──
+  const isAdminLogin = pathname === "/admin/login";
+  const isAdminApiAuth = pathname === "/api/admin/login" || pathname === "/api/admin/logout";
+  const isAdminRoute = pathname.startsWith("/admin") && !isAdminLogin;
+  const isAdminApiRoute = pathname.startsWith("/api/admin/") && !isAdminApiAuth;
 
   if (isAdminRoute || isAdminApiRoute) {
     const sessionCookie = request.cookies.get("admin-session")?.value;
@@ -66,67 +29,129 @@ export async function middleware(request: NextRequest) {
       if (isAdminRoute) {
         const url = request.nextUrl.clone();
         url.pathname = "/admin/login";
-        // Clear invalid cookie
-        supabaseResponse.cookies.set("admin-session", "", {
+        const redirectRes = NextResponse.redirect(url);
+        redirectRes.cookies.set("admin-session", "", {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
           path: "/",
           maxAge: 0,
         });
-        return NextResponse.redirect(url);
+        return redirectRes;
       }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Valid admin session — continue
     return supabaseResponse;
   }
 
-  // ── Non-admin routes: Supabase auth (for normal Poetly users) ──
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
+  // If already authenticated as admin, visiting /admin/login redirects to /admin
+  if (isAdminLogin) {
+    const sessionCookie = request.cookies.get("admin-session")?.value;
+    if (sessionCookie) {
+      const valid = await verifyAdminSession(sessionCookie);
+      if (valid) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/admin";
+        return NextResponse.redirect(url);
+      }
     }
-  );
+    return supabaseResponse;
+  }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ── Non-admin routes: Supabase auth ──
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const publicRoutes = ["/", "/home", "/trending", "/search", "/explore", "/writers", "/prompts"];
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
+  if (!supabaseUrl || !supabaseKey) {
+    return supabaseResponse;
+  }
 
-  const isAuthRoute = pathname.startsWith("/auth") || pathname === "/login";
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
-  if (!user && !isPublicRoute && !isAuthRoute && !pathname.startsWith("/poem/") && !pathname.startsWith("/profile/")) {
+  let user = null;
+  try {
+    const { data: authData, error } = await supabase.auth.getUser();
+    if (!error && authData?.user) {
+      user = authData.user;
+    }
+  } catch {
+    user = null;
+  }
+
+  // Helper to copy cookies on redirect
+  const createRedirectResponse = (url: URL) => {
+    const res = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      res.cookies.set(name, value, options);
+    });
+    return res;
+  };
+
+  // Auth callback route must run without interference
+  if (pathname.startsWith("/auth/callback")) {
+    return supabaseResponse;
+  }
+
+  // Login page: redirect logged-in users away
+  if (pathname === "/login") {
+    if (user) {
+      const next = request.nextUrl.searchParams.get("redirect") || "/home";
+      const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/home";
+      const url = request.nextUrl.clone();
+      url.pathname = safeNext;
+      url.search = "";
+      return createRedirectResponse(url);
+    }
+    return supabaseResponse;
+  }
+
+  // Check public routes
+  const isExplicitPublic = [
+    "/",
+    "/home",
+    "/explore",
+    "/trending",
+    "/search",
+    "/writers",
+    "/prompts",
+    "/robots.txt",
+    "/sitemap.xml",
+  ].some((r) => pathname === r);
+
+  const isPublicPrefix =
+    pathname.startsWith("/prompts/") ||
+    (pathname.startsWith("/poem/") &&
+      !pathname.endsWith("/edit") &&
+      !pathname.endsWith("/respond") &&
+      !pathname.endsWith("/canvas")) ||
+    (pathname.startsWith("/profile/") &&
+      pathname !== "/profile/setup" &&
+      pathname !== "/profile");
+
+  const isPublic = isExplicitPublic || isPublicPrefix;
+
+  // Unauthenticated users attempting to access protected routes go to login
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/home";
-    return NextResponse.redirect(url);
+    return createRedirectResponse(url);
   }
 
   return supabaseResponse;
@@ -134,6 +159,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|css|js|txt|xml|json)$).*)",
   ],
 };

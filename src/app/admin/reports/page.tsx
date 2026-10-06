@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -21,29 +20,14 @@ export default function AdminReportsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    const supabase = createClient();
-    await supabase.from("admin_activity_log").insert({
-      admin_id: null,
-      action,
-      target_type: "report",
-      target_id: targetId,
-      details: details || null,
-    });
-  }, []);
-
   const fetchReports = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      let query = supabase.from("reports").select("*").order("created_at", { ascending: false });
-      if (filter !== "all") {
-        query = query.eq("status", filter);
-      }
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-      setReports((data as Report[]) || []);
+      const res = await fetch(`/api/admin/data?type=reports&filter=${filter}`);
+      if (!res.ok) throw new Error("Failed to load reports");
+      const json = await res.json();
+      setReports((json.reports as Report[]) || []);
     } catch (err) {
       setError("Failed to load reports. Please try again.");
       console.error("Fetch reports error:", err);
@@ -58,67 +42,50 @@ export default function AdminReportsPage() {
     setConfirm(null);
     const report = reports.find((r) => r.id === reportId);
     if (!report) return;
-    const supabase = createClient();
 
     try {
+      let body: Record<string, unknown>;
       switch (action) {
-        case "resolve": {
-          const { error } = await supabase.from("reports").update({
+        case "resolve":
+          body = { action: "resolve_report", reportId, status: "resolved", adminNote };
+          break;
+        case "dismiss":
+          body = { action: "resolve_report", reportId, status: "dismissed", adminNote };
+          break;
+        case "hide":
+          body = {
+            action: "resolve_report",
+            reportId,
             status: "resolved",
-            admin_note: adminNote || null,
-            resolved_by: null,
-            resolved_at: new Date().toISOString(),
-          }).eq("id", reportId);
-          if (error) throw error;
-          await logActivity("resolved_report", reportId, `${report.target_type}: ${report.reason.slice(0, 50)}`);
-          setToast("Report resolved.");
+            adminNote: `Content hidden. ${adminNote || ""}`.trim(),
+            hideContent: true,
+          };
           break;
-        }
-        case "dismiss": {
-          const { error } = await supabase.from("reports").update({
-            status: "dismissed",
-            admin_note: adminNote || null,
-            resolved_by: null,
-            resolved_at: new Date().toISOString(),
-          }).eq("id", reportId);
-          if (error) throw error;
-          await logActivity("dismissed_report", reportId, `${report.target_type}: ${report.reason.slice(0, 50)}`);
-          setToast("Report dismissed.");
-          break;
-        }
-        case "hide": {
-          if (report.target_type === "poem") {
-            const { error: poemErr } = await supabase.from("poems").update({ status: "hidden" }).eq("id", report.target_id);
-            if (poemErr) throw poemErr;
-          }
-          const { error } = await supabase.from("reports").update({
+        case "remove":
+          body = {
+            action: "resolve_report",
+            reportId,
             status: "resolved",
-            admin_note: `Content hidden. ${adminNote || ""}`.trim(),
-            resolved_by: null,
-            resolved_at: new Date().toISOString(),
-          }).eq("id", reportId);
-          if (error) throw error;
-          await logActivity("hidden_content_via_report", reportId, `${report.target_type} ${report.target_id}`);
-          setToast("Content hidden and report resolved.");
+            adminNote: `Content removed. ${adminNote || ""}`.trim(),
+            hideContent: true,
+          };
           break;
-        }
-        case "remove": {
-          if (report.target_type === "poem") {
-            const { error: poemErr } = await supabase.from("poems").update({ status: "removed" }).eq("id", report.target_id);
-            if (poemErr) throw poemErr;
-          }
-          const { error } = await supabase.from("reports").update({
-            status: "resolved",
-            admin_note: `Content removed. ${adminNote || ""}`.trim(),
-            resolved_by: null,
-            resolved_at: new Date().toISOString(),
-          }).eq("id", reportId);
-          if (error) throw error;
-          await logActivity("removed_content_via_report", reportId, `${report.target_type} ${report.target_id}`);
-          setToast("Content removed and report resolved.");
-          break;
-        }
+        default:
+          return;
       }
+
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error("Action failed");
+
+      if (action === "resolve") setToast("Report resolved.");
+      else if (action === "dismiss") setToast("Report dismissed.");
+      else if (action === "hide") setToast("Content hidden and report resolved.");
+      else if (action === "remove") setToast("Content removed and report resolved.");
 
       setSelected(null);
       setAdminNote("");

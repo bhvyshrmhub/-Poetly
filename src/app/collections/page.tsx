@@ -20,18 +20,24 @@ export default function CollectionsPage() {
 
   const fetchCollections = useCallback(async () => {
     try {
-      const { data } = await supabase
+      let query = supabase
         .from("collections")
-        .select("*")
+        .select("*, collection_poems(id)")
         .order("created_at", { ascending: false });
 
-      setCollections((data as Collection[]) || []);
+      if (user) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setCollections((data as unknown as Collection[]) || []);
     } catch {
       setToast("Failed to load collections");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchCollections();
@@ -73,12 +79,14 @@ export default function CollectionsPage() {
             <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Collections</h1>
             <p className="text-sm text-text-secondary">Your curated groups of poems.</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors px-3 py-1.5 rounded-full border border-brand/30 hover:border-brand"
-          >
-            <Plus size={12} strokeWidth={2} /> New
-          </button>
+          {user && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors px-3 py-1.5 rounded-full border border-brand/30 hover:border-brand"
+            >
+              <Plus size={12} strokeWidth={2} /> New
+            </button>
+          )}
         </div>
 
         {showCreate && (
@@ -116,13 +124,29 @@ export default function CollectionsPage() {
             {[1, 2, 3].map((i) => <div key={i} className="h-20 skeleton rounded-[var(--radius-md)]" />)}
           </div>
         ) : collections.length > 0 ? (
-          collections.map((c) => (
-            <Link key={c.id} href={`/collections/${c.id}`} className="group block py-5 border-b border-border-subtle last:border-0 hover:bg-surface-hover -mx-5 px-5 transition-colors">
-              <h3 className="font-poem text-lg font-medium text-text-primary mb-1 group-hover:text-brand transition-colors">{c.title}</h3>
-              {c.description && <p className="text-sm text-text-secondary">{c.description}</p>}
-              <p className="text-xs text-text-tertiary mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
+          collections.map((c) => {
+            const count = ((c as unknown as { collection_poems?: unknown[] }).collection_poems?.length) || 0;
+            return (
+              <Link key={c.id} href={`/collections/${c.id}`} className="group block py-5 border-b border-border-subtle last:border-0 hover:bg-surface-hover -mx-5 px-5 transition-colors">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-poem text-lg font-medium text-text-primary mb-1 group-hover:text-brand transition-colors">{c.title}</h3>
+                  <span className="text-xs text-text-tertiary font-sans">
+                    {count} {count === 1 ? "poem" : "poems"}
+                  </span>
+                </div>
+                {c.description && <p className="text-sm text-text-secondary">{c.description}</p>}
+                <p className="text-xs text-text-tertiary mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
+              </Link>
+            );
+          })
+        ) : !user ? (
+          <div className="text-center py-16">
+            <p className="font-poem text-xl text-text-tertiary italic mb-2">Organize your favorite poems into collections.</p>
+            <p className="text-sm text-text-tertiary mb-4">Sign in to create and manage personal poetry collections.</p>
+            <Link href="/login" className="inline-block px-5 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-full transition-colors">
+              Sign In
             </Link>
-          ))
+          </div>
         ) : (
           <div className="text-center py-16">
             <p className="font-poem text-xl text-text-tertiary italic mb-2">No collections yet.</p>

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink, Star, EyeOff, RotateCcw, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -13,8 +12,6 @@ import Toast from "@/components/Toast";
 
 type Poem = Database["public"]["Tables"]["poems"]["Row"];
 type PoemWithAuthor = Poem & { profiles: Database["public"]["Tables"]["profiles"]["Row"] };
-
-const PAGE_SIZE = 20;
 
 export default function AdminPoemsPage() {
   const [poems, setPoems] = useState<PoemWithAuthor[]>([]);
@@ -26,116 +23,70 @@ export default function AdminPoemsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    const supabase = createClient();
-    await supabase.from("admin_activity_log").insert({
-      admin_id: null,
-      action,
-      target_type: "poem",
-      target_id: targetId,
-      details: details || null,
-    });
-  }, []);
-
-  const fetchPoems = useCallback(async (reset = false) => {
+  const fetchPoems = useCallback(async (reset = false, customPage?: number) => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const offset = reset ? 0 : page * PAGE_SIZE;
-      let query = supabase
-        .from("poems")
-        .select("*, profiles!inner(*)")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+      const pageToFetch = reset ? 0 : customPage !== undefined ? customPage : page;
+      const res = await fetch(`/api/admin/data?type=poems&page=${pageToFetch}&filter=${filter}`);
+      if (!res.ok) throw new Error("Failed to load poems");
+      const json = await res.json();
+      const typedData = (json.poems as PoemWithAuthor[]) || [];
 
-      if (filter !== "all") {
-        query = query.eq("status", filter);
+      if (reset) {
+        setPoems(typedData);
+        setPage(0);
+      } else {
+        setPoems((prev) => (pageToFetch === 0 ? typedData : [...prev, ...typedData]));
       }
-
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-
-      const typedData = (data as PoemWithAuthor[]) || [];
-      setPoems(reset ? typedData : [...poems, ...typedData]);
-      setHasMore(typedData.length === PAGE_SIZE);
+      setHasMore(Boolean(json.hasMore));
     } catch (err) {
       setError("Failed to load poems. Please try again.");
       console.error("Fetch poems error:", err);
     } finally {
       setLoading(false);
     }
-  }, [filter, page, poems]);
+  }, [filter, page]);
 
   useEffect(() => {
-    setPage(0);
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const supabase = createClient();
-        const { data, error: fetchError } = await supabase
-          .from("poems")
-          .select("*, profiles!inner(*)")
-          .order("created_at", { ascending: false })
-          .range(0, PAGE_SIZE - 1);
-        if (filter !== "all") {
-          const filtered = (data as PoemWithAuthor[] || []).filter((p) => p.status === filter);
-          setPoems(filtered);
-          setHasMore(filtered.length === PAGE_SIZE);
-        } else {
-          setPoems((data as PoemWithAuthor[]) || []);
-          setHasMore((data as PoemWithAuthor[])?.length === PAGE_SIZE);
-        }
-        if (fetchError) throw fetchError;
-      } catch (err) {
-        setError("Failed to load poems. Please try again.");
-        console.error("Fetch poems error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [filter]);
+    fetchPoems(true);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAction = async (action: string, poemId: string, poemTitle: string) => {
     setConfirm(null);
-    const supabase = createClient();
 
     try {
+      let body: Record<string, unknown>;
       switch (action) {
-        case "feature": {
-          const { error } = await supabase.from("featured_content").insert({
-            content_type: "poem",
-            content_id: poemId,
-          });
-          if (error) throw error;
-          await logActivity("featured_poem", poemId, poemTitle);
-          setToast("Poem featured successfully.");
+        case "feature":
+          body = { action: "add_featured", contentType: "poem", contentId: poemId };
           break;
-        }
-        case "hide": {
-          const { error } = await supabase.from("poems").update({ status: "hidden" }).eq("id", poemId);
-          if (error) throw error;
-          await logActivity("hidden_poem", poemId, poemTitle);
-          setToast("Poem hidden.");
+        case "hide":
+          body = { action: "set_poem_status", poemId, status: "hidden", poemTitle };
           break;
-        }
-        case "restore": {
-          const { error } = await supabase.from("poems").update({ status: "published" }).eq("id", poemId);
-          if (error) throw error;
-          await logActivity("restored_poem", poemId, poemTitle);
-          setToast("Poem restored to published.");
+        case "restore":
+          body = { action: "set_poem_status", poemId, status: "published", poemTitle };
           break;
-        }
-        case "delete": {
-          const { error } = await supabase.from("poems").update({ status: "removed" }).eq("id", poemId);
-          if (error) throw error;
-          await logActivity("removed_poem", poemId, poemTitle);
-          setToast("Poem removed.");
+        case "delete":
+          body = { action: "set_poem_status", poemId, status: "removed", poemTitle };
           break;
-        }
+        default:
+          return;
       }
+
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error("Action failed");
+
+      if (action === "feature") setToast("Poem featured successfully.");
+      else if (action === "hide") setToast("Poem hidden.");
+      else if (action === "restore") setToast("Poem restored to published.");
+      else if (action === "delete") setToast("Poem removed.");
+
       fetchPoems(true);
     } catch (err) {
       setToast("Action failed. Please try again.");

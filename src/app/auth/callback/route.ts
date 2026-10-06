@@ -44,11 +44,16 @@ export async function GET(request: NextRequest) {
     if (!exchangeError && data.session) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, bio, website, location")
         .eq("id", data.session.user.id)
         .single();
 
-      const redirectUrl = new URL(profile ? next : "/profile/setup", origin);
+      // Check if user was just created within the last 2 minutes and hasn't customized profile
+      const createdAt = new Date(data.session.user.created_at || "").getTime();
+      const isNewUser = !isNaN(createdAt) && Date.now() - createdAt < 120000;
+      const needsSetup = !profile || (isNewUser && !profile.bio && !profile.website && !profile.location);
+
+      const redirectUrl = new URL(needsSetup ? "/profile/setup" : next, origin);
 
       const response = NextResponse.redirect(redirectUrl);
       supabaseResponse.cookies.getAll().forEach(({ name, value }) => {

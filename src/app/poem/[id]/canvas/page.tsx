@@ -13,7 +13,9 @@ import CanvasControls from "@/components/canvas/CanvasControls";
 import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
-type Poem = Database["public"]["Tables"]["poems"]["Row"];
+type PoemWithAuthor = Database["public"]["Tables"]["poems"]["Row"] & {
+  profiles?: Database["public"]["Tables"]["profiles"]["Row"] | null;
+};
 
 const STORAGE_KEY = "poetly-canvas-styles";
 
@@ -22,7 +24,7 @@ export default function CanvasPage() {
   const poemId = params.id as string;
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const [poem, setPoem] = useState<Poem | null>(null);
+  const [poem, setPoem] = useState<PoemWithAuthor | null>(null);
   const [state, setState] = useState<CanvasState | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -34,12 +36,14 @@ export default function CanvasPage() {
       try {
         const { data } = await supabase
           .from("poems")
-          .select("*")
+          .select("*, profiles(*)")
           .eq("id", poemId)
           .single();
         if (data) {
-          setPoem(data);
-          setState(getDefaultCanvasState(data.title, data.content, "Anonymous Poet"));
+          const authorPoem = data as unknown as PoemWithAuthor;
+          setPoem(authorPoem);
+          const authorName = authorPoem.profiles?.display_name || "Poet";
+          setState(getDefaultCanvasState(authorPoem.title, authorPoem.content, authorName));
         }
       } catch {
         setToast("Failed to load poem");
@@ -96,7 +100,8 @@ export default function CanvasPage() {
   const handleReset = useCallback(() => {
     if (!poem) return;
     if (!confirm("Reset canvas to default?")) return;
-    setState(getDefaultCanvasState(poem.title, poem.content, "Anonymous Poet"));
+    const authorName = poem.profiles?.display_name || "Poet";
+    setState(getDefaultCanvasState(poem.title, poem.content, authorName));
     setToast("Canvas reset");
   }, [poem]);
 
@@ -108,7 +113,7 @@ export default function CanvasPage() {
     const canvasDisplayWidth = state.canvasWidth * 0.35;
     const newScale = Math.min(0.5, Math.max(0.15, containerWidth / canvasDisplayWidth));
     setScale(newScale);
-  }, [state?.canvasWidth, state?.canvasHeight]);
+  }, [state?.canvasWidth, state?.canvasHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading || !state) {
     return (

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
 import AdminEmptyState from "@/components/admin/EmptyState";
@@ -17,13 +16,10 @@ export default function AdminCollectionsPage() {
 
   const fetchCollections = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data, error: fetchError } = await supabase
-        .from("collections")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (fetchError) throw fetchError;
-      setCollections((data as Collection[]) || []);
+      const res = await fetch("/api/admin/data?type=collections");
+      if (!res.ok) throw new Error("Failed to load collections");
+      const json = await res.json();
+      setCollections((json.collections as Collection[]) || []);
     } catch (err) {
       setError("Failed to load collections.");
       console.error("Fetch collections error:", err);

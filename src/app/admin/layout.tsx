@@ -35,8 +35,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  // Middleware handles auth — if we're here, session is valid
-  // Login page doesn't use this layout (it's a standalone page)
+  // Login page doesn't use the admin dashboard shell
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
 
   const handleSignOut = async () => {
     setSigningOut(true);

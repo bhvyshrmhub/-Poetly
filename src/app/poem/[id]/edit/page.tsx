@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Palette, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
+import { useAuth } from "@/components/AuthProvider";
 import AppShell from "@/components/shell/AppShell";
 import Toast from "@/components/Toast";
 
@@ -37,6 +38,7 @@ export default function EditPoemPage() {
   const poemId = params.id as string;
 
   const [poem, setPoem] = useState<Poem | null>(null);
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTypography, setSelectedTypography] = useState("serif");
@@ -62,6 +64,11 @@ export default function EditPoemPage() {
           router.push("/home");
           return;
         }
+        if (user && user.id !== data.author_id) {
+          setToast("You can only edit your own poems");
+          router.push(`/poem/${poemId}`);
+          return;
+        }
         setPoem(data);
         setTitle(data.title || "");
         setContent(data.content);
@@ -73,7 +80,7 @@ export default function EditPoemPage() {
         setLoading(false);
       }
     })();
-  }, [poemId, router]);
+  }, [poemId, router, user]);
 
   const handleSave = async () => {
     if (!poem || !content.trim()) {

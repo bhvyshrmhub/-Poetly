@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Trash2, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/database.types";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AdminSkeleton from "@/components/admin/AdminSkeleton";
@@ -30,52 +29,16 @@ export default function AdminFeaturedPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const logActivity = useCallback(async (action: string, targetId: string, details?: string) => {
-    const supabase = createClient();
-    await supabase.from("admin_activity_log").insert({
-      admin_id: null,
-      action,
-      target_type: "featured_content",
-      target_id: targetId,
-      details: details || null,
-    });
-  }, []);
-
   const fetchFeatured = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const { data: featured, error: fetchError } = await supabase
-        .from("featured_content")
-        .select("*")
-        .order("position", { ascending: true });
-      if (fetchError) throw fetchError;
-
-      const featuredList = (featured as FeaturedRow[]) || [];
-
-      const poemIds = featuredList.filter((f) => f.content_type === "poem").map((f) => f.content_id);
-      const promptIds = featuredList.filter((f) => f.content_type === "prompt").map((f) => f.content_id);
-
-      const [poemsRes, promptsRes] = await Promise.all([
-        poemIds.length > 0
-          ? supabase.from("poems").select("*").in("id", poemIds)
-          : { data: [], error: null },
-        promptIds.length > 0
-          ? supabase.from("prompts").select("*").in("id", promptIds)
-          : { data: [], error: null },
-      ]);
-
-      const poemsMap = new Map((poemsRes.data as Poem[] || []).map((p) => [p.id, p]));
-      const promptsMap = new Map((promptsRes.data as Prompt[] || []).map((p) => [p.id, p]));
-
-      const enriched = featuredList.map((f) => ({
-        ...f,
-        poem: f.content_type === "poem" ? poemsMap.get(f.content_id) : undefined,
-        prompt: f.content_type === "prompt" ? promptsMap.get(f.content_id) : undefined,
-      }));
-
-      setItems(enriched);
+      const res = await fetch("/api/admin/data?type=featured");
+      if (!res.ok) throw new Error("Failed to load featured content");
+      const json = await res.json();
+      setItems((json.items as FeaturedItem[]) || []);
+      setAvailablePoems((json.availablePoems as Poem[]) || []);
+      setAvailablePrompts((json.availablePrompts as Prompt[]) || []);
     } catch (err) {
       setError("Failed to load featured content.");
       console.error("Fetch featured error:", err);
@@ -87,30 +50,21 @@ export default function AdminFeaturedPage() {
   useEffect(() => { fetchFeatured(); }, [fetchFeatured]);
 
   const loadAvailable = async () => {
-    try {
-      const supabase = createClient();
-      const [poemsRes, promptsRes] = await Promise.all([
-        supabase.from("poems").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(30),
-        supabase.from("prompts").select("*").order("created_at", { ascending: false }).limit(30),
-      ]);
-      setAvailablePoems((poemsRes.data as Poem[]) || []);
-      setAvailablePrompts((promptsRes.data as Prompt[]) || []);
-    } catch (err) {
-      console.error("Load available content error:", err);
-    }
+    // Available items already loaded during fetchFeatured
   };
 
   const handleAdd = async (contentId: string) => {
-    const supabase = createClient();
     try {
-      const maxPos = items.reduce((max, i) => Math.max(max, i.position), -1);
-      const { error } = await supabase.from("featured_content").insert({
-        content_type: addType,
-        content_id: contentId,
-        position: maxPos + 1,
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_featured",
+          contentType: addType,
+          contentId,
+        }),
       });
-      if (error) throw error;
-      await logActivity("added_featured", contentId, addType);
+      if (!res.ok) throw new Error("Add featured failed");
       setShowAdd(false);
       setToast("Content added to featured.");
       fetchFeatured();
@@ -122,11 +76,16 @@ export default function AdminFeaturedPage() {
 
   const handleRemove = async (id: string) => {
     setConfirm(null);
-    const supabase = createClient();
     try {
-      const { error } = await supabase.from("featured_content").delete().eq("id", id);
-      if (error) throw error;
-      await logActivity("removed_featured", id);
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "remove_featured",
+          id,
+        }),
+      });
+      if (!res.ok) throw new Error("Remove featured failed");
       setToast("Content removed from featured.");
       fetchFeatured();
     } catch (err) {
@@ -145,15 +104,18 @@ export default function AdminFeaturedPage() {
     [updated[idx].position, updated[swapIdx].position] = [updated[swapIdx].position, updated[idx].position];
     const [moved] = updated.splice(idx, 1);
     updated.splice(swapIdx, 0, moved);
+    setItems(updated);
 
-    const supabase = createClient();
     try {
-      await Promise.all(
-        updated.map((item) =>
-          supabase.from("featured_content").update({ position: item.position }).eq("id", item.id)
-        )
-      );
-      setItems(updated);
+      const res = await fetch("/api/admin/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reorder_featured",
+          items: updated.map((item) => ({ id: item.id, position: item.position })),
+        }),
+      });
+      if (!res.ok) throw new Error("Reorder failed");
     } catch (err) {
       console.error("Reorder error:", err);
       fetchFeatured();
