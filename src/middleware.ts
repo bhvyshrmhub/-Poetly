@@ -2,11 +2,24 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdminSession } from "@/lib/admin-auth";
 
+// Bounded fetch to ensure Supabase calls never hang or exceed Edge limits
+const fetchWithTimeout = (url: RequestInfo | URL, init?: RequestInit) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  if (init?.signal) {
+    init.signal.addEventListener("abort", () => controller.abort());
+  }
+
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+};
+
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
 
-  // ── Admin routes ──
+  // ── 1. Admin routes (pure Web Crypto HMAC, zero Supabase involvement) ──
   const isAdminLogin = pathname === "/admin/login";
   const isAdminApiAuth = pathname === "/api/admin/login" || pathname === "/api/admin/logout";
   const isAdminRoute = pathname.startsWith("/admin") && !isAdminLogin;
@@ -17,8 +30,7 @@ export async function middleware(request: NextRequest) {
 
     if (!sessionCookie) {
       if (isAdminRoute) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin/login";
+        const url = new URL("/admin/login", request.url);
         return NextResponse.redirect(url);
       }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,8 +39,7 @@ export async function middleware(request: NextRequest) {
     const valid = await verifyAdminSession(sessionCookie);
     if (!valid) {
       if (isAdminRoute) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin/login";
+        const url = new URL("/admin/login", request.url);
         const redirectRes = NextResponse.redirect(url);
         redirectRes.cookies.set("admin-session", "", {
           httpOnly: true,
@@ -42,7 +53,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return supabaseResponse;
+    return NextResponse.next({ request });
   }
 
   // If already authenticated as admin, visiting /admin/login redirects to /admin
@@ -51,21 +62,72 @@ export async function middleware(request: NextRequest) {
     if (sessionCookie) {
       const valid = await verifyAdminSession(sessionCookie);
       if (valid) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin";
+        const url = new URL("/admin", request.url);
         return NextResponse.redirect(url);
       }
     }
-    return supabaseResponse;
+    return NextResponse.next({ request });
   }
 
-  // ── Non-admin routes: Supabase auth ──
+  // ── 2. Auth callback route (must run without interference to exchange OAuth code) ──
+  if (pathname.startsWith("/auth/callback")) {
+    return NextResponse.next({ request });
+  }
+
+  // ── 3. Route classification ──
+  const isProtected =
+    pathname.startsWith("/write") ||
+    pathname.startsWith("/notifications") ||
+    pathname.startsWith("/saved") ||
+    pathname.startsWith("/library") ||
+    pathname === "/profile" ||
+    pathname === "/profile/setup" ||
+    (pathname.startsWith("/poem/") && (
+      pathname.endsWith("/edit") ||
+      pathname.endsWith("/respond") ||
+      pathname.endsWith("/canvas")
+    ));
+
+  // ── 4. Supabase auth cookie check (zero-cost in-memory scan) ──
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(
+    (c) =>
+      (c.name.startsWith("sb-") && (c.name.includes("auth-token") || c.name.includes("token"))) ||
+      c.name.includes("supabase")
+  );
+
+  // ── 5. FAST PATH: No auth cookies present ──
+  if (!hasAuthCookie) {
+    // Unauthenticated user attempting to access protected route -> instant redirect to login
+    if (isProtected) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Public route & no session -> return immediately without any network call
+    return NextResponse.next({ request });
+  }
+
+  // ── 6. SLOW PATH: Auth cookie is present ──
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    return supabaseResponse;
+    if (isProtected) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next({ request });
   }
+
+  // Root path "/" redirects immediately to "/home" in page.tsx; avoid redundant Supabase call
+  if (pathname === "/") {
+    return NextResponse.next({ request });
+  }
+
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -82,19 +144,27 @@ export async function middleware(request: NextRequest) {
         );
       },
     },
+    global: {
+      fetch: fetchWithTimeout,
+    },
   });
 
   let user = null;
   try {
-    const { data: authData, error } = await supabase.auth.getUser();
-    if (!error && authData?.user) {
-      user = authData.user;
+    const getUserPromise = supabase.auth.getUser();
+    const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase auth timeout")), 2500)
+    );
+
+    const result = await Promise.race([getUserPromise, timeoutPromise]);
+    if (!result.error && result.data?.user) {
+      user = result.data.user;
     }
   } catch {
     user = null;
   }
 
-  // Helper to copy cookies on redirect
+  // Helper to copy response cookies on redirect
   const createRedirectResponse = (url: URL) => {
     const res = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
@@ -103,55 +173,22 @@ export async function middleware(request: NextRequest) {
     return res;
   };
 
-  // Auth callback route must run without interference
-  if (pathname.startsWith("/auth/callback")) {
-    return supabaseResponse;
-  }
-
-  // Login page: redirect logged-in users away
+  // Login page: redirect already-authenticated users away
   if (pathname === "/login") {
     if (user) {
       const next = request.nextUrl.searchParams.get("redirect") || "/home";
       const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/home";
-      const url = request.nextUrl.clone();
-      url.pathname = safeNext;
-      url.search = "";
-      return createRedirectResponse(url);
+      const targetUrl = new URL(safeNext, request.url);
+      return createRedirectResponse(targetUrl);
     }
     return supabaseResponse;
   }
 
-  // Check public routes
-  const isExplicitPublic = [
-    "/",
-    "/home",
-    "/explore",
-    "/trending",
-    "/search",
-    "/writers",
-    "/prompts",
-    "/robots.txt",
-    "/sitemap.xml",
-  ].some((r) => pathname === r);
-
-  const isPublicPrefix =
-    pathname.startsWith("/prompts/") ||
-    (pathname.startsWith("/poem/") &&
-      !pathname.endsWith("/edit") &&
-      !pathname.endsWith("/respond") &&
-      !pathname.endsWith("/canvas")) ||
-    (pathname.startsWith("/profile/") &&
-      pathname !== "/profile/setup" &&
-      pathname !== "/profile");
-
-  const isPublic = isExplicitPublic || isPublicPrefix;
-
   // Unauthenticated users attempting to access protected routes go to login
-  if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
-    return createRedirectResponse(url);
+  if (isProtected && !user) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
+    return createRedirectResponse(loginUrl);
   }
 
   return supabaseResponse;
@@ -159,6 +196,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|css|js|txt|xml|json)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|css|js|txt|xml|json)$).*)",
   ],
 };
