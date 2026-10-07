@@ -50,6 +50,17 @@
   --info:                    #6C8CFF;
   --info-subtle:             rgba(108, 140, 255, 0.10);
 
+  /* ── Multi-Accent System ── */
+  --accent-rose:             #D67FA1;
+  --accent-lavender:         #8B90C8;
+  --accent-lilac:            #9B7AB8;
+  --accent-sky:              #6CA4D9;
+  --accent-mint:             #5CB88A;
+  --accent-sage:             #7A9A70;
+  --accent-peach:            #DDA07A;
+  --accent-cream:            #C8B898;
+  --accent-gold:             #C8A860;
+
   /* ── Poetry Accents ── */
   --accent-love:             #E89AC7;
   --accent-midnight:         #4A4F7C;
