@@ -237,8 +237,8 @@ function WritePageInner() {
   };
 
   return (
-    <AppShell>
-      <div className="max-w-5xl mx-auto px-5 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
+    <AppShell maxWidth="wide">
+      <div className="w-full">
         <div className="flex items-center justify-between mb-6">
           <Link
             href="/home"

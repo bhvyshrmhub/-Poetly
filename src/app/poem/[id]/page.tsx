@@ -7,8 +7,9 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor, CommentWithAuthor } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/Toast";
+import Avatar from "@/components/ui/Avatar";
 
 export default function PoemPage() {
   const params = useParams();
@@ -247,10 +248,11 @@ export default function PoemPage() {
   const isAuthor = user && poem && user.id === poem.author_id;
 
   return (
-    <AppShell>
-      <article className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-6 md:py-12">
-        <div className="flex items-center justify-between mb-10">
+    <AppShell maxWidth="reading">
+      <article className="w-full py-4 md:py-8">
+        <div className="flex items-center justify-between mb-8">
           <button
+            type="button"
             onClick={() => router.back()}
             className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
           >
@@ -267,17 +269,17 @@ export default function PoemPage() {
         </div>
 
         <div className="animate-fade-in">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
-              {poem.profiles.profile_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={poem.profiles.profile_image} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-brand text-sm font-display font-medium">
-                  {poem.profiles.display_name[0]}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center gap-3.5 mb-8">
+            <Link
+              href={`/profile/${poem.profiles.username}`}
+              className="shrink-0 focus-visible:outline-none"
+            >
+              <Avatar
+                src={poem.profiles.profile_image}
+                name={poem.profiles.display_name}
+                size="md"
+              />
+            </Link>
             <div>
               <Link
                 href={`/profile/${poem.profiles.username}`}
@@ -406,16 +408,12 @@ export default function PoemPage() {
             <div className="space-y-5">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3 group">
-                  <div className="w-7 h-7 rounded-[var(--radius-sm)] bg-brand-subtle flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
-                    {comment.profiles?.profile_image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={comment.profiles.profile_image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-brand text-[10px] font-display font-medium">
-                        {comment.profiles?.display_name?.[0] || "?"}
-                      </span>
-                    )}
-                  </div>
+                  <Avatar
+                    src={comment.profiles?.profile_image}
+                    name={comment.profiles?.display_name}
+                    size="xs"
+                    className="mt-0.5 shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-2">
