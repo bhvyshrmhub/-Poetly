@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Profile } from "@/lib/types";
+import Avatar from "@/components/ui/Avatar";
 
 interface SuggestedWriter extends Profile {
   isFollowed: boolean;
@@ -140,14 +141,13 @@ export default function SuggestedWriters() {
           <div key={writer.id} className="writer-card">
             <Link
               href={`/profile/${writer.username}`}
-              className="profile-avatar overflow-hidden flex-shrink-0"
+              className="shrink-0 focus-visible:outline-none"
             >
-              {writer.profile_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={writer.profile_image} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="profile-avatar-initial">{writer.display_name[0]}</span>
-              )}
+              <Avatar
+                src={writer.profile_image}
+                name={writer.display_name}
+                size="sm"
+              />
             </Link>
             <div className="writer-info min-w-0 flex-1">
               <Link
