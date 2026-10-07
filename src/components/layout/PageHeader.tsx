@@ -7,7 +7,10 @@ import { ArrowLeft } from "lucide-react";
 export interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  description?: string;
   action?: React.ReactNode;
+  actions?: React.ReactNode;
+  badge?: React.ReactNode;
   backHref?: string;
   backLabel?: string;
   onBack?: () => void;
@@ -17,12 +20,18 @@ export interface PageHeaderProps {
 export default function PageHeader({
   title,
   subtitle,
+  description,
   action,
+  actions,
+  badge,
   backHref,
   backLabel = "Back",
   onBack,
   className = "",
 }: PageHeaderProps) {
+  const displaySubtitle = subtitle || description;
+  const displayAction = action || actions;
+
   return (
     <header className={`mb-6 md:mb-8 animate-fade-in ${className}`}>
       {/* Optional back navigation link */}
@@ -52,19 +61,22 @@ export default function PageHeader({
       {/* Title & Action Row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
-          <h1 className="font-poem font-semibold text-2xl sm:text-3xl text-text-primary tracking-tight">
-            {title}
-          </h1>
-          {subtitle && (
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="font-poem font-semibold text-2xl sm:text-3xl text-text-primary tracking-tight">
+              {title}
+            </h1>
+            {badge && <div className="shrink-0">{badge}</div>}
+          </div>
+          {displaySubtitle && (
             <p className="text-xs sm:text-sm text-text-secondary mt-1">
-              {subtitle}
+              {displaySubtitle}
             </p>
           )}
         </div>
 
-        {action && (
+        {displayAction && (
           <div className="shrink-0 self-start sm:self-auto flex items-center gap-2">
-            {action}
+            {displayAction}
           </div>
         )}
       </div>

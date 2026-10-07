@@ -7,14 +7,15 @@ import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor, Profile } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
 import WriterCard from "@/components/WriterCard";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
 
 export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <AppShell>
-          <div className="max-w-[var(--content-width)] mx-auto px-5 py-12 flex justify-center">
+        <AppShell maxWidth="feed">
+          <div className="py-12 flex justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
           </div>
         </AppShell>
@@ -101,92 +102,99 @@ function SearchContent() {
   }, [query, activeTab]);
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <div className="mb-6 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-4">Search</h1>
+    <AppShell maxWidth="feed">
+      <div className="animate-fade-in">
+        <PageHeader
+          title="Search"
+          description="Find poems, poets, and moods across Poetly"
+        />
 
-          <div className="relative mb-6">
-            <SearchIcon
-              size={16}
-              strokeWidth={1.5}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary"
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search poems, writers, or tags..."
-              className="w-full bg-surface border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none pl-10 pr-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors"
-              autoFocus
-            />
-          </div>
+        <div className="relative mb-6">
+          <SearchIcon
+            size={16}
+            strokeWidth={1.5}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary"
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search poems, writers, or tags..."
+            className="w-full bg-surface border border-border-subtle focus:border-brand rounded-[var(--radius-md)] outline-none pl-10 pr-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors"
+            autoFocus
+          />
+        </div>
 
-          <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
-            {(["poems", "writers", "tags"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 capitalize ${
-                  activeTab === tab
-                    ? "bg-surface text-text-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                {tab}
-              </button>
+        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
+          {(["poems", "writers", "tags"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 capitalize ${
+                activeTab === tab
+                  ? "bg-surface text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 skeleton rounded-[var(--radius-md)]" />
             ))}
           </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 skeleton rounded-[var(--radius-md)]" />
-              ))}
-            </div>
-          ) : !query.trim() ? (
-            <div className="text-center py-16 text-text-tertiary">
-              <SearchIcon size={32} className="mx-auto mb-3 opacity-30" />
-              <p className="font-poem text-lg italic mb-1">Seek and you shall read.</p>
-              <p className="text-xs">Type a keyword, writer name, or tag above.</p>
-            </div>
-          ) : activeTab === "poems" ? (
-            poems.length > 0 ? (
-              <div className="space-y-2">
-                {poems.map((poem) => (
-                  <PoemCard key={poem.id} poem={poem} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-tertiary py-12 text-center">No poems found matching &ldquo;{query}&rdquo;.</p>
-            )
-          ) : activeTab === "writers" ? (
-            writers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {writers.map((writer) => (
-                  <div key={writer.id} className="p-3 bg-surface border border-border-subtle rounded-[var(--radius-md)]">
-                    <WriterCard writer={writer} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-tertiary py-12 text-center">No writers found matching &ldquo;{query}&rdquo;.</p>
-            )
-          ) : poems.length > 0 ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-4 text-xs text-text-tertiary">
-                <TagIcon size={12} />
-                <span>Showing poems tagged with #{query.replace(/^#/, "")}</span>
-              </div>
+        ) : !query.trim() ? (
+          <div className="text-center py-16 text-text-tertiary">
+            <SearchIcon size={32} className="mx-auto mb-3 opacity-30" />
+            <p className="font-poem text-lg italic mb-1">Seek and you shall read.</p>
+            <p className="text-xs">Type a keyword, writer name, or tag above.</p>
+          </div>
+        ) : activeTab === "poems" ? (
+          poems.length > 0 ? (
+            <div className="space-y-3">
               {poems.map((poem) => (
                 <PoemCard key={poem.id} poem={poem} />
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-tertiary py-12 text-center">No poems found tagged with &ldquo;{query}&rdquo;.</p>
-          )}
-        </div>
-      </main>
+            <p className="text-sm text-text-tertiary py-12 text-center">
+              No poems found matching &ldquo;{query}&rdquo;.
+            </p>
+          )
+        ) : activeTab === "writers" ? (
+          writers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {writers.map((writer) => (
+                <div key={writer.id} className="p-3 bg-surface border border-border-subtle rounded-[var(--radius-md)]">
+                  <WriterCard writer={writer} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-tertiary py-12 text-center">
+              No writers found matching &ldquo;{query}&rdquo;.
+            </p>
+          )
+        ) : poems.length > 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-4 text-xs text-text-tertiary">
+              <TagIcon size={12} />
+              <span>Showing poems tagged with #{query.replace(/^#/, "")}</span>
+            </div>
+            {poems.map((poem) => (
+              <PoemCard key={poem.id} poem={poem} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-tertiary py-12 text-center">
+            No poems found tagged with &ldquo;{query}&rdquo;.
+          </p>
+        )}
+      </div>
     </AppShell>
   );
 }

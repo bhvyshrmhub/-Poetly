@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
 
 export default function ProfilePage() {
   const { user, profile, loading } = useAuth();
@@ -21,8 +21,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <AppShell>
-        <div className="max-w-[var(--content-width)] mx-auto px-5 py-8">
+      <AppShell maxWidth="feed">
+        <div className="py-8">
           <div className="w-20 h-20 skeleton rounded-[var(--radius-md)] mb-5" />
           <div className="w-48 h-6 skeleton rounded mb-3" />
           <div className="w-32 h-4 skeleton rounded" />
@@ -32,10 +32,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-16 text-center pb-24 md:pb-16">
+    <AppShell maxWidth="feed">
+      <div className="py-16 text-center">
         <p className="font-poem text-xl text-text-tertiary italic">Redirecting...</p>
-      </main>
+      </div>
     </AppShell>
   );
 }

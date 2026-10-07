@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
 
 export default function TrendingPage() {
   const [activeTab, setActiveTab] = useState<"trending" | "mostLoved" | "rising">("trending");
@@ -77,36 +78,50 @@ export default function TrendingPage() {
   ];
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <div className="mb-6 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Discover</h1>
-          <p className="text-sm text-text-secondary">Poems gaining attention right now</p>
-        </div>
+    <AppShell maxWidth="feed">
+      <div className="animate-fade-in">
+        <PageHeader
+          title="Discover"
+          description="Poems gaining attention across the community right now"
+        />
 
         <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
           {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${activeTab === tab.id ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"}`}>
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-4 py-2 text-xs md:text-sm font-medium rounded-full transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-surface text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
               {tab.label}
             </button>
           ))}
         </div>
 
-        <section className="mb-12">
+        <section className="space-y-4">
           {loading ? (
-            <div className="space-y-5">
-              {[1, 2, 3].map((i) => <div key={i} className="h-24 skeleton rounded-[var(--radius-md)]" />)}
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 skeleton rounded-[var(--radius-md)]" />
+              ))}
             </div>
           ) : poems.length > 0 ? (
-            poems.map((poem) => <PoemCard key={poem.id} poem={poem} />)
+            <div className="space-y-3">
+              {poems.map((poem) => (
+                <PoemCard key={poem.id} poem={poem} />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-16">
-              <p className="font-poem text-xl text-text-tertiary italic mb-2">Nothing trending yet.</p>
-              <p className="text-sm text-text-tertiary">Be the first to publish a poem.</p>
+              <p className="font-poem text-xl text-text-tertiary italic mb-2">No poems found.</p>
+              <p className="text-xs text-text-tertiary">Check back later for trending pieces.</p>
             </div>
           )}
         </section>
-      </main>
+      </div>
     </AppShell>
   );
 }

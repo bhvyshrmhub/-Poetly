@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { WriterWithStats } from "@/lib/types";
 import WriterCard from "@/components/WriterCard";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
 
 export default function WritersPage() {
   const [writers, setWriters] = useState<WriterWithStats[]>([]);
@@ -52,36 +53,48 @@ export default function WritersPage() {
   }, [fetchWriters]);
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <div className="mb-6 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Writers</h1>
-          <p className="text-sm text-text-secondary">Discover poets to follow</p>
-        </div>
+    <AppShell maxWidth="wide">
+      <div className="animate-fade-in">
+        <PageHeader
+          title="Writers"
+          description="Discover poets and voices to follow across Poetly"
+        />
 
         <div className="relative mb-6">
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search writers..." className="w-full bg-surface border border-border-subtle rounded-[var(--radius-md)] px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:border-brand transition-colors" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search writers by name or handle..."
+            className="w-full bg-surface border border-border-subtle rounded-[var(--radius-md)] px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:border-brand transition-colors"
+          />
         </div>
 
-        <section className="mb-12">
+        <section>
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => <div key={i} className="h-32 skeleton rounded-[var(--radius-md)]" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-32 skeleton rounded-[var(--radius-md)]" />
+              ))}
             </div>
           ) : writers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {writers.map((writer) => (
                 <WriterCard key={writer.id} writer={writer} />
               ))}
             </div>
           ) : (
             <div className="text-center py-16">
-              <p className="font-poem text-xl text-text-tertiary italic mb-2">{searchQuery ? "No writers found." : "No writers yet."}</p>
-              <p className="text-sm text-text-tertiary">{searchQuery ? "Try a different search." : "Be the first to join."}</p>
+              <p className="font-poem text-xl text-text-tertiary italic mb-2">
+                {searchQuery ? "No writers found." : "No writers yet."}
+              </p>
+              <p className="text-xs text-text-tertiary">
+                {searchQuery ? "Try a different search term." : "Be the first to join."}
+              </p>
             </div>
           )}
         </section>
-      </main>
+      </div>
     </AppShell>
   );
 }

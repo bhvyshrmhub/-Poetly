@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Prompt } from "@/lib/types";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
 import Toast from "@/components/Toast";
 
 export default function PromptsPage() {
@@ -36,12 +37,12 @@ export default function PromptsPage() {
   }, [activeTab]);
 
   return (
-    <AppShell>
-      <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="font-poem text-2xl md:text-3xl text-text-primary mb-1">Writing Prompts</h1>
-          <p className="text-sm text-text-secondary">Find your next poem.</p>
-        </div>
+    <AppShell maxWidth="feed">
+      <div className="animate-fade-in">
+        <PageHeader
+          title="Writing Prompts"
+          description="Find your next poem and participate in community writing exercises."
+        />
 
         <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
           {[
@@ -51,8 +52,10 @@ export default function PromptsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                activeTab === tab.id ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              className={`flex-1 px-4 py-2 text-xs md:text-sm font-medium rounded-full transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-surface text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               {tab.label}
@@ -62,34 +65,56 @@ export default function PromptsPage() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-24 skeleton rounded-[var(--radius-md)]" />)}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 skeleton rounded-[var(--radius-md)]" />
+            ))}
           </div>
         ) : prompts.length > 0 ? (
-          prompts.map((prompt) => (
-            <Link key={prompt.id} href={`/prompts/${prompt.id}`} className="group block py-5 border-b border-border-subtle last:border-0 hover:bg-surface-hover -mx-5 px-5 transition-colors">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="font-poem text-xl font-medium text-text-primary mb-1 group-hover:text-brand transition-colors italic">&ldquo;{prompt.title}&rdquo;</h3>
-                  {prompt.description && <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">{prompt.description}</p>}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      prompt.is_active ? "bg-success-subtle text-success" : "bg-surface-secondary text-text-tertiary"
-                    }`}>
-                      {prompt.is_active ? "Active" : "Ended"}
-                    </span>
-                    <span className="text-xs text-text-tertiary">{new Date(prompt.created_at).toLocaleDateString()}</span>
+          <div className="space-y-3">
+            {prompts.map((prompt) => (
+              <Link
+                key={prompt.id}
+                href={`/prompts/${prompt.id}`}
+                className="group block p-4 bg-surface border border-border-subtle hover:border-brand/40 rounded-[var(--radius-md)] transition-all duration-200"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-poem text-lg md:text-xl font-medium text-text-primary mb-1 group-hover:text-brand transition-colors italic">
+                      &ldquo;{prompt.title}&rdquo;
+                    </h3>
+                    {prompt.description && (
+                      <p className="text-xs md:text-sm text-text-secondary leading-relaxed line-clamp-2">
+                        {prompt.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-3">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          prompt.is_active
+                            ? "bg-success-subtle text-success"
+                            : "bg-surface-secondary text-text-tertiary"
+                        }`}
+                      >
+                        {prompt.is_active ? "Active" : "Ended"}
+                      </span>
+                      <span className="text-xs text-text-tertiary">
+                        {new Date(prompt.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))
+              </Link>
+            ))}
+          </div>
         ) : (
           <div className="text-center py-16">
             <p className="font-poem text-xl text-text-tertiary italic mb-2">
               {activeTab === "active" ? "No active prompts right now." : "No archived prompts yet."}
             </p>
-            <p className="text-sm text-text-tertiary">
-              {activeTab === "active" ? "Check back soon for new writing prompts." : "Completed prompts will appear here."}
+            <p className="text-xs text-text-tertiary">
+              {activeTab === "active"
+                ? "Check back soon for new writing prompts."
+                : "Completed prompts will appear here."}
             </p>
           </div>
         )}

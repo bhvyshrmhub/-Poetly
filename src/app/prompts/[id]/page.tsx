@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, PenLine } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Prompt, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
 import Toast from "@/components/Toast";
 
 export default function PromptDetailPage() {
@@ -38,61 +39,89 @@ export default function PromptDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading) {
-    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-8"><div className="w-48 h-6 skeleton rounded mb-4" /><div className="w-full h-20 skeleton rounded" /></div></AppShell>;
+    return (
+      <AppShell maxWidth="feed">
+        <div className="py-8">
+          <div className="w-48 h-6 skeleton rounded mb-4" />
+          <div className="w-full h-20 skeleton rounded" />
+        </div>
+      </AppShell>
+    );
   }
 
   if (!prompt) {
-    return <AppShell><div className="max-w-[var(--content-width)] mx-auto px-5 py-16 text-center"><p className="font-poem text-xl text-text-tertiary italic">Prompt not found.</p></div></AppShell>;
+    return (
+      <AppShell maxWidth="feed">
+        <div className="py-16 text-center">
+          <p className="font-poem text-xl text-text-tertiary italic">Prompt not found.</p>
+        </div>
+      </AppShell>
+    );
   }
 
   return (
-    <AppShell>
-      <div className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <Link href="/prompts" className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8">
-          <ArrowLeft size={14} strokeWidth={1.5} /> Prompts
-        </Link>
-
-        <div className="mb-10 animate-fade-in">
-          <div className="flex items-center gap-2 mb-3">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-              prompt.is_active ? "bg-success-subtle text-success" : "bg-surface-secondary text-text-tertiary"
-            }`}>
+    <AppShell maxWidth="feed">
+      <div className="animate-fade-in">
+        <PageHeader
+          title={prompt.title}
+          backHref="/prompts"
+          backLabel="Prompts"
+          badge={
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                prompt.is_active
+                  ? "bg-success-subtle text-success"
+                  : "bg-surface-secondary text-text-tertiary"
+              }`}
+            >
               {prompt.is_active ? "Active" : "Ended"}
             </span>
-            <span className="text-xs text-text-tertiary">{new Date(prompt.created_at).toLocaleDateString()}</span>
-          </div>
+          }
+          actions={
+            prompt.is_active ? (
+              <Link
+                href={`/write?prompt=${prompt.id}`}
+                className="inline-flex items-center gap-2 px-4 py-2 gradient-brand text-white text-xs md:text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity"
+              >
+                <PenLine size={14} strokeWidth={2} /> Write for this Prompt
+              </Link>
+            ) : undefined
+          }
+        />
 
-          <h1 className="font-poem-title text-3xl md:text-4xl text-text-primary mb-4">{prompt.title}</h1>
+        {prompt.description && (
+          <p className="text-base md:text-lg text-text-secondary leading-relaxed mb-8 font-poem italic">
+            &ldquo;{prompt.description}&rdquo;
+          </p>
+        )}
 
-          {prompt.description && (
-            <p className="text-lg text-text-secondary leading-relaxed mb-6 font-poem">{prompt.description}</p>
-          )}
-
-          {prompt.is_active && (
-            <Link
-              href={`/write?prompt=${prompt.id}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 gradient-brand text-white text-sm font-medium rounded-[var(--radius-full)] hover:opacity-90 transition-opacity"
-            >
-              <PenLine size={14} strokeWidth={2} /> Write for this Prompt
-            </Link>
-          )}
-        </div>
-
-        <div className="border-t border-border-subtle pt-8">
-          <h2 className="font-poem text-lg font-medium text-text-primary mb-6">
-            Poems inspired by this prompt
-            {poems.length > 0 && <span className="text-text-tertiary ml-2">({poems.length})</span>}
+        <div className="border-t border-border-subtle pt-6">
+          <h2 className="font-poem text-lg font-medium text-text-primary mb-4 flex items-center justify-between">
+            <span>Poems inspired by this prompt</span>
+            {poems.length > 0 && (
+              <span className="text-xs text-text-tertiary font-sans font-normal">
+                {poems.length} {poems.length === 1 ? "poem" : "poems"}
+              </span>
+            )}
           </h2>
 
           {poems.length > 0 ? (
-            poems.map((poem) => <PoemCard key={poem.id} poem={poem} />)
+            <div className="space-y-3">
+              {poems.map((poem) => (
+                <PoemCard key={poem.id} poem={poem} />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
-              <p className="font-poem text-lg text-text-tertiary italic mb-2">No poems yet for this prompt.</p>
-              <p className="text-sm text-text-tertiary">Be the first to respond.</p>
+              <p className="font-poem text-lg text-text-tertiary italic mb-2">
+                No poems yet for this prompt.
+              </p>
+              <p className="text-xs text-text-tertiary">Be the first to respond.</p>
             </div>
           )}
         </div>

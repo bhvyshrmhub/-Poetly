@@ -6,7 +6,8 @@ import { Camera, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { uploadImage } from "@/lib/supabase/storage";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
+import Avatar from "@/components/ui/Avatar";
 import Toast from "@/components/Toast";
 
 export default function ProfileSetupPage() {
@@ -168,8 +169,8 @@ export default function ProfileSetupPage() {
 
   if (checking || authLoading) {
     return (
-      <AppShell>
-        <div className="max-w-lg mx-auto px-5 py-12 flex items-center justify-center">
+      <AppShell maxWidth="feed">
+        <div className="py-12 flex items-center justify-center">
           <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
         </div>
       </AppShell>
@@ -177,8 +178,8 @@ export default function ProfileSetupPage() {
   }
 
   return (
-    <AppShell>
-      <div className="max-w-lg mx-auto px-5 py-8 md:py-12 animate-fade-in pb-24 md:pb-12">
+    <AppShell maxWidth="feed">
+      <div className="max-w-lg mx-auto animate-fade-in">
         {isEditing && (
           <button
             onClick={() => router.back()}
@@ -207,15 +208,13 @@ export default function ProfileSetupPage() {
           {/* Avatar Upload */}
           <div className="flex flex-col items-center justify-center gap-2">
             <div className="relative group">
-              <div className="w-20 h-20 rounded-[var(--radius-md)] bg-brand-subtle flex items-center justify-center overflow-hidden border border-border-subtle">
-                {profileImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profileImage} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-brand font-display text-2xl font-medium">
-                    {displayName ? displayName[0] : "P"}
-                  </span>
-                )}
+              <div className="w-20 h-20 rounded-[var(--radius-md)] overflow-hidden border border-border-subtle">
+                <Avatar
+                  src={profileImage}
+                  name={displayName || "P"}
+                  size="xl"
+                  className="w-20 h-20 rounded-[var(--radius-md)]"
+                />
               </div>
               <button
                 type="button"
