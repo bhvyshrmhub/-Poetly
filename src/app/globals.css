@@ -127,22 +127,22 @@
 
 .dark {
   /* ── AMOLED Dark Mode ── */
-  --background:              #000000;
-  --background-subtle:       #050505;
-  --background-elevated:     #0A0A0A;
+  --background:              #050505;
+  --background-subtle:       #0A0A0E;
+  --background-elevated:     #0D0D11;
 
-  --surface:                 #080808;
-  --surface-hover:           #0D0D0D;
-  --surface-active:          #111111;
-  --surface-elevated:        #0F0F0F;
-  --surface-secondary:       #060606;
-  --surface-input:           #0A0A0A;
+  --surface:                 #0D0D11;
+  --surface-hover:           #14141A;
+  --surface-active:          #1A1A22;
+  --surface-elevated:        #111116;
+  --surface-secondary:       #09090C;
+  --surface-input:           #0D0D11;
 
   --text-primary:            #F5F5F5;
   --text-secondary:          #A0A0A0;
   --text-tertiary:           #666666;
   --text-disabled:           #404040;
-  --text-on-accent:          #000000;
+  --text-on-accent:          #050505;
 
   /* ── Accent Colors (Rose as primary) ── */
   --brand-primary:           #E8A0B8;
@@ -165,9 +165,9 @@
   --accent-cream:            #E8E0D0;
   --accent-gold:             #D8C098;
 
-  --border-subtle:           #111111;
-  --border-default:          #1A1A1A;
-  --border-strong:           #252525;
+  --border-subtle:           #16161E;
+  --border-default:          #22222C;
+  --border-strong:           #2E2E3C;
 
   --success:                 #6DCD9E;
   --success-subtle:          rgba(109, 205, 158, 0.10);
