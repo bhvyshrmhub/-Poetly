@@ -46,6 +46,18 @@ export default function AppShell({
     return () => window.removeEventListener("keydown", handleEscape);
   }, []);
 
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileDrawerOpen]);
+
   return (
     <div className={`min-h-screen bg-background text-text-primary flex flex-col ${className}`}>
       {/* Top Header */}

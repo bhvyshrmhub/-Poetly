@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { CanvasState } from "@/lib/canvas-types";
 
 interface CanvasPreviewProps {
@@ -28,14 +29,12 @@ export default function CanvasPreview({ state, scale = 0.4, previewRef }: Canvas
       }}
     >
       {state.backgroundType === "image" && state.backgroundImage && (
-        <img
+        <Image
           src={state.backgroundImage}
           alt=""
+          fill
+          unoptimized
           style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
             objectFit: "cover",
             filter: state.backgroundBlur > 0 ? `blur(${state.backgroundBlur}px)` : undefined,
             transform: state.backgroundZoom !== 1 ? `scale(${state.backgroundZoom})` : undefined,

@@ -90,7 +90,7 @@ export default function GlobalHeader({
           <button
             type="button"
             onClick={() => setMobileSearchOpen((prev) => !prev)}
-            className="md:hidden flex items-center justify-center w-9.5 h-9.5 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
+            className="md:hidden flex items-center justify-center w-10 h-10 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
             aria-label="Toggle mobile search"
           >
             <Search size={18} strokeWidth={1.8} />
@@ -99,7 +99,7 @@ export default function GlobalHeader({
           {/* Primary Action: Write */}
           <Link
             href={user ? "/write" : "/login"}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-[var(--radius-full)] bg-brand text-white hover:bg-brand-hover active:scale-[0.98] transition-all duration-150 text-xs sm:text-sm font-medium shadow-sm shadow-brand/20 select-none"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2 rounded-[var(--radius-full)] bg-brand text-white hover:bg-brand-hover active:scale-[0.98] transition-all duration-150 text-xs sm:text-sm font-medium shadow-sm shadow-brand/20 select-none min-h-[36px]"
             aria-label="Write a poem"
           >
             <PenLine size={15} strokeWidth={2.2} />
@@ -110,7 +110,7 @@ export default function GlobalHeader({
           {user && (
             <Link
               href="/notifications"
-              className="flex items-center justify-center w-9.5 h-9.5 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
+              className="flex items-center justify-center w-10 h-10 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
               aria-label="View notifications"
             >
               <Bell size={18} strokeWidth={1.8} />
@@ -121,7 +121,7 @@ export default function GlobalHeader({
           <button
             type="button"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center w-9.5 h-9.5 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
+            className="flex items-center justify-center w-10 h-10 rounded-[var(--radius-sm)] text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-95 transition-all"
             aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
           >
             {resolvedTheme === "dark" ? (
@@ -137,7 +137,7 @@ export default function GlobalHeader({
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                className="flex items-center justify-center rounded-full hover:ring-2 hover:ring-brand/30 transition-all cursor-pointer"
+                className="flex items-center justify-center w-10 h-10 rounded-full hover:ring-2 hover:ring-brand/30 transition-all cursor-pointer"
                 aria-label="User account menu"
                 aria-expanded={profileDropdownOpen}
               >
