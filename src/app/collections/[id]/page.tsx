@@ -187,14 +187,13 @@ export default function CollectionDetailPage() {
   }
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <Link
-          href="/collections"
-          className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8"
-        >
-          <ArrowLeft size={14} strokeWidth={1.5} /> Collections
-        </Link>
+    <AppShell maxWidth="feed">
+      <Link
+        href="/collections"
+        className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-6"
+      >
+        <ArrowLeft size={14} strokeWidth={1.5} /> Collections
+      </Link>
 
         {isEditing ? (
           <div className="mb-8 p-5 bg-surface border border-border-subtle rounded-[var(--radius-lg)] animate-fade-in space-y-4">
@@ -313,7 +312,6 @@ export default function CollectionDetailPage() {
             )}
           </div>
         )}
-      </main>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </AppShell>
   );
