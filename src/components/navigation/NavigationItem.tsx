@@ -32,7 +32,7 @@ export default function NavigationItem({
         onClick={onClick}
         aria-label={label}
         aria-current={isActive ? "page" : undefined}
-        className={`group relative flex items-center gap-3.5 px-4 py-3 rounded-[var(--radius-full)] font-medium text-sm transition-all duration-200 select-none ${
+        className={`group relative flex items-center gap-3.5 px-4 py-3 rounded-[var(--radius-full)] font-medium text-sm transition-all duration-200 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
           isActive
             ? "bg-brand text-white shadow-md shadow-brand/25"
             : "bg-brand text-white hover:bg-brand-hover active:scale-[0.98] shadow-sm shadow-brand/20"
@@ -54,7 +54,7 @@ export default function NavigationItem({
       onClick={onClick}
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
-      className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 select-none ${
+      className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
         isActive
           ? "bg-brand-subtle text-brand font-medium"
           : "text-text-secondary hover:text-text-primary hover:bg-surface-hover active:scale-[0.99]"

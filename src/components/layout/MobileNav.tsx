@@ -23,7 +23,11 @@ export default function MobileNav() {
       href: "/explore",
       label: "Explore",
       icon: Compass,
-      isActive: pathname.startsWith("/explore") || pathname.startsWith("/search"),
+      isActive:
+        pathname.startsWith("/explore") ||
+        pathname.startsWith("/search") ||
+        pathname.startsWith("/trending") ||
+        pathname.startsWith("/writers"),
     },
     {
       href: user ? "/write" : "/login",
