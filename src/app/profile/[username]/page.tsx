@@ -8,8 +8,10 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Profile, PoemWithAuthor } from "@/lib/types";
 import PoemCard from "@/components/PoemCard";
-import AppShell from "@/components/shell/AppShell";
+import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/Toast";
+import Avatar from "@/components/ui/Avatar";
+import SuggestedWriters from "@/components/home/SuggestedWriters";
 
 export default function ProfileByUsernamePage() {
   const params = useParams();
@@ -133,75 +135,130 @@ export default function ProfileByUsernamePage() {
   }
 
   return (
-    <AppShell>
-      <main className="max-w-[var(--content-width)] mx-auto px-5 md:px-6 py-8 md:py-12 pb-24 md:pb-12">
-        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-8">
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back
-        </button>
+    <AppShell maxWidth="feed" rightRail={<SuggestedWriters />}>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors mb-6"
+      >
+        <ArrowLeft size={14} strokeWidth={1.5} /> Back
+      </button>
 
-        <div className="animate-fade-in mb-8">
-          <div className="flex items-start gap-4 mb-5">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-[var(--radius-md)] bg-brand-subtle flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {profile.profile_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.profile_image} alt="" width={80} height={80} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-brand font-display text-2xl font-medium">{profile.display_name[0]}</span>
+      <div className="animate-fade-in mb-8">
+        <div className="flex items-start gap-4 mb-5">
+          <Avatar
+            src={profile.profile_image}
+            name={profile.display_name}
+            size="xl"
+            className="shrink-0"
+          />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="font-poem text-xl sm:text-2xl font-semibold text-text-primary">
+                {profile.display_name}
+              </h1>
+              {isOwnProfile && (
+                <Link
+                  href="/profile/setup"
+                  className="p-1 rounded-[var(--radius-sm)] text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                  aria-label="Edit profile settings"
+                >
+                  <Settings size={15} strokeWidth={1.5} />
+                </Link>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="font-poem text-xl font-medium text-text-primary">{profile.display_name}</h1>
-                {isOwnProfile && (
-                  <Link href="/profile/setup" className="text-xs text-text-tertiary hover:text-text-primary transition-colors">
-                    <Settings size={14} strokeWidth={1.5} />
-                  </Link>
-                )}
-              </div>
-              <p className="text-sm text-text-tertiary">@{profile.username}</p>
-            </div>
-            {!isOwnProfile && user && (
-              <button
-                onClick={handleFollow}
-                className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all ${
-                  isFollowing
-                    ? "border border-border-default text-text-secondary hover:border-error hover:text-error"
-                    : "gradient-brand text-white hover:opacity-90"
-                }`}
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </button>
-            )}
+            <p className="text-xs sm:text-sm text-text-tertiary">@{profile.username}</p>
           </div>
 
-          {profile.bio && (
-            <p className="text-sm text-text-secondary italic mb-4 max-w-md">&ldquo;{profile.bio}&rdquo;</p>
+          {!isOwnProfile && user && (
+            <button
+              type="button"
+              onClick={handleFollow}
+              className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all select-none ${
+                isFollowing
+                  ? "border border-border-default text-text-secondary hover:border-error hover:text-error"
+                  : "bg-brand text-white hover:bg-brand-hover shadow-xs"
+              }`}
+            >
+              {isFollowing ? "Following" : "Follow"}
+            </button>
           )}
-
-          <div className="flex gap-6 text-sm">
-            <div><span className="font-medium text-text-primary">{poems.length}</span> <span className="text-text-tertiary">Poems</span></div>
-            <div><span className="font-medium text-text-primary">{followerCount}</span> <span className="text-text-tertiary">Followers</span></div>
-            <div><span className="font-medium text-text-primary">{followingCount}</span> <span className="text-text-tertiary">Following</span></div>
-          </div>
         </div>
 
-        <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1">
-          {(["poems", "about"] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 capitalize ${activeTab === tab ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"}`}>{tab}</button>
-          ))}
-        </div>
-
-        {activeTab === "poems" ? (
-          poems.length > 0 ? poems.map((poem) => <PoemCard key={poem.id} poem={poem} />) : <p className="text-sm text-text-tertiary py-12 text-center">No poems yet.</p>
-        ) : (
-          <div className="py-4">
-            {profile.bio && <p className="font-poem text-lg text-text-primary italic mb-4">&ldquo;{profile.bio}&rdquo;</p>}
-            {profile.location && <p className="text-sm text-text-secondary mb-1">{profile.location}</p>}
-            {profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-brand hover:text-brand-hover mb-1 block">{profile.website}</a>}
-            <p className="text-sm text-text-tertiary mt-4">Member since {new Date(profile.created_at).toLocaleDateString()}</p>
-          </div>
+        {profile.bio && (
+          <p className="text-xs sm:text-sm text-text-secondary italic mb-4 max-w-lg font-serif">
+            &ldquo;{profile.bio}&rdquo;
+          </p>
         )}
-      </main>
+
+        <div className="flex gap-6 text-xs sm:text-sm pt-2 border-t border-border-subtle/50">
+          <div>
+            <span className="font-semibold text-text-primary">{poems.length}</span>{" "}
+            <span className="text-text-tertiary">{poems.length === 1 ? "Poem" : "Poems"}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-text-primary">{followerCount}</span>{" "}
+            <span className="text-text-tertiary">Followers</span>
+          </div>
+          <div>
+            <span className="font-semibold text-text-primary">{followingCount}</span>{" "}
+            <span className="text-text-tertiary">Following</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-1 mb-6 bg-surface-secondary rounded-[var(--radius-full)] p-1 border border-border-subtle/50">
+        {(["poems", "about"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-150 capitalize select-none ${
+              activeTab === tab
+                ? "bg-surface text-text-primary shadow-xs"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "poems" ? (
+        poems.length > 0 ? (
+          <div className="space-y-0">
+            {poems.map((poem) => (
+              <PoemCard key={poem.id} poem={poem} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-tertiary py-12 text-center font-poem italic">
+            No poems published yet.
+          </p>
+        )
+      ) : (
+        <div className="py-4 space-y-3">
+          {profile.bio && (
+            <p className="font-poem text-lg text-text-primary italic mb-4">&ldquo;{profile.bio}&rdquo;</p>
+          )}
+          {profile.location && <p className="text-sm text-text-secondary">📍 {profile.location}</p>}
+          {profile.website && (
+            <a
+              href={profile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-brand hover:text-brand-hover block underline underline-offset-4"
+            >
+              {profile.website}
+            </a>
+          )}
+          <p className="text-xs text-text-tertiary pt-2">
+            Member since {new Date(profile.created_at).toLocaleDateString()}
+          </p>
+        </div>
+      )}
+
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </AppShell>
   );
