@@ -1,30 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { PoemWithAuthor } from "@/lib/types";
+import AppShell from "@/components/layout/AppShell";
+import PageHeader from "@/components/layout/PageHeader";
+import PoemCard from "@/components/PoemCard";
 
-// Desktop components
-import HomeNavbar from "./HomeNavbar";
-import ProfileMiniCard from "./ProfileMiniCard";
-import MainNavigation from "./MainNavigation";
-import TrendingTags from "./TrendingTags";
+// Desktop & shared components
 import PoemComposer from "./PoemComposer";
 import DailyPoetlyMoment from "./DailyPoetlyMoment";
 import FeedTabs, { FeedTabType } from "./FeedTabs";
-import HomePoemCard from "./HomePoemCard";
 import ActivityPanel from "./ActivityPanel";
 import SuggestedWriters from "./SuggestedWriters";
 import WritingCTA from "./WritingCTA";
 
 // Mobile components
-import MobileTopBar from "./MobileTopBar";
 import MobileComposer from "./MobileComposer";
-import MobileBottomNav from "./MobileBottomNav";
 
-// States
+// States & Skeletons
 import { PoemCardSkeleton } from "./Skeletons";
 import { EmptyFeedState, ErrorFeedState } from "./States";
 
@@ -137,98 +133,81 @@ export default function HomeLayout() {
     fetchPoems();
   }, [fetchPoems]);
 
-  return (
-    <div className="min-h-screen">
-      {/* Desktop Navbar */}
-      <div className="hidden md:block">
-        <HomeNavbar />
-      </div>
-
-      {/* Mobile Top Bar */}
-      <MobileTopBar />
-
-      {/* Main Content */}
-      <div className="home-layout pt-6 pb-24 md:pb-6">
-        {/* Left Sidebar */}
-        <aside className="home-sidebar hidden md:block">
-          <ProfileMiniCard />
-          <div className="mt-6">
-            <MainNavigation />
-          </div>
-          <div className="mt-6">
-            <TrendingTags />
-          </div>
-        </aside>
-
-        {/* Center Column */}
-        <main className="min-w-0">
-          {/* Mobile Composer */}
-          <div className="md:hidden">
-            <MobileComposer />
-          </div>
-
-          {/* Desktop Composer */}
-          <div className="hidden md:block">
-            <PoemComposer />
-          </div>
-
-          {/* Daily Moment */}
-          <DailyPoetlyMoment />
-
-          {/* Feed Tabs */}
-          <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-          {/* Feed */}
-          <section>
-            {loading ? (
-              <div className="space-y-6">
-                <PoemCardSkeleton />
-                <PoemCardSkeleton />
-                <PoemCardSkeleton />
-              </div>
-            ) : error ? (
-              <ErrorFeedState onRetry={fetchPoems} />
-            ) : poems.length > 0 ? (
-              <div className="space-y-0">
-                {poems.map((poem) => (
-                  <HomePoemCard key={poem.id} poem={poem} />
-                ))}
-              </div>
-            ) : activeTab === "following" ? (
-              <div className="text-center py-16 bg-surface-secondary rounded-[var(--radius-lg)] p-8">
-                <p className="font-poem text-xl text-text-tertiary italic mb-2">
-                  {!user ? "Sign in to see your following feed." : "You haven't followed any writers yet."}
-                </p>
-                <p className="text-sm text-text-secondary mb-4">
-                  {!user ? "Follow your favorite poets to see their poems here." : "Discover poets and follow their work."}
-                </p>
-                <Link
-                  href={!user ? "/login" : "/writers"}
-                  className="inline-flex items-center px-4 py-2 text-xs font-medium text-white gradient-brand rounded-full hover:opacity-90"
-                >
-                  {!user ? "Sign in →" : "Discover writers →"}
-                </Link>
-              </div>
-            ) : (
-              <EmptyFeedState />
-            )}
-          </section>
-        </main>
-
-        {/* Right Sidebar */}
-        <aside className="home-right-sidebar hidden lg:block">
-          <ActivityPanel />
-          <div className="mt-6">
-            <SuggestedWriters />
-          </div>
-          <div className="mt-6">
-            <WritingCTA />
-          </div>
-        </aside>
-      </div>
-
-      {/* Mobile Bottom Nav */}
-      <MobileBottomNav />
+  const rightRailContent = (
+    <div className="space-y-6">
+      <ActivityPanel />
+      <SuggestedWriters />
+      <WritingCTA />
     </div>
+  );
+
+  return (
+    <AppShell maxWidth="feed" rightRail={rightRailContent}>
+      {/* Consistent Page Header */}
+      <PageHeader
+        title="Home"
+        subtitle="A quiet place for words."
+      />
+
+      {/* Desktop Composer */}
+      <div className="hidden md:block mb-6">
+        <PoemComposer />
+      </div>
+
+      {/* Mobile Composer */}
+      <div className="md:hidden mb-4">
+        <MobileComposer />
+      </div>
+
+      {/* Daily Moment */}
+      <div className="mb-6">
+        <DailyPoetlyMoment />
+      </div>
+
+      {/* Feed Tabs */}
+      <div className="mb-6">
+        <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
+      {/* Feed List */}
+      <section>
+        {loading ? (
+          <div className="space-y-4">
+            <PoemCardSkeleton />
+            <PoemCardSkeleton />
+            <PoemCardSkeleton />
+          </div>
+        ) : error ? (
+          <ErrorFeedState onRetry={fetchPoems} />
+        ) : poems.length > 0 ? (
+          <div className="space-y-0">
+            {poems.map((poem) => (
+              <PoemCard key={poem.id} poem={poem} />
+            ))}
+          </div>
+        ) : activeTab === "following" ? (
+          <div className="text-center py-16 bg-surface-secondary rounded-[var(--radius-lg)] p-8 border border-border-subtle">
+            <p className="font-poem text-xl text-text-tertiary italic mb-2">
+              {!user
+                ? "Sign in to see your following feed."
+                : "You haven't followed any writers yet."}
+            </p>
+            <p className="text-sm text-text-secondary mb-4">
+              {!user
+                ? "Follow your favorite poets to see their poems here."
+                : "Discover poets and follow their work."}
+            </p>
+            <Link
+              href={!user ? "/login" : "/writers"}
+              className="inline-flex items-center px-4 py-2 text-xs font-medium text-white gradient-brand rounded-full hover:opacity-90 shadow-sm"
+            >
+              {!user ? "Sign in →" : "Discover writers →"}
+            </Link>
+          </div>
+        ) : (
+          <EmptyFeedState />
+        )}
+      </section>
+    </AppShell>
   );
 }
