@@ -308,30 +308,73 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.is_admin(uid uuid DEFAULT auth.uid())
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.admin_users WHERE user_id = uid
+  );
+$$;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  base_username text;
+  candidate_username text;
+  counter integer := 0;
 BEGIN
+  base_username := COALESCE(
+    new.raw_user_meta_data->>'username',
+    split_part(new.email, '@', 1),
+    'writer'
+  );
+  base_username := lower(regexp_replace(base_username, '[^a-zA-Z0-9_]', '', 'g'));
+  IF length(base_username) < 3 THEN
+    base_username := 'writer_' || substr(replace(new.id::text, '-', ''), 1, 6);
+  END IF;
+
+  candidate_username := base_username;
+  WHILE EXISTS (SELECT 1 FROM public.profiles WHERE username = candidate_username) LOOP
+    counter := counter + 1;
+    candidate_username := substr(base_username, 1, 14) || '_' || counter::text;
+  END LOOP;
+
   INSERT INTO public.profiles (id, username, display_name, profile_image)
   VALUES (
     new.id,
-    COALESCE(
-      new.raw_user_meta_data->>'username',
-      split_part(new.email, '@', 1)
-    ),
+    candidate_username,
     COALESCE(
       new.raw_user_meta_data->>'full_name',
       new.raw_user_meta_data->>'display_name',
-      split_part(new.email, '@', 1)
+      split_part(new.email, '@', 1),
+      'Writer'
     ),
+    COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', null)
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN new;
+EXCEPTION WHEN OTHERS THEN
+  INSERT INTO public.profiles (id, username, display_name, profile_image)
+  VALUES (
+    new.id,
+    'writer_' || substr(replace(new.id::text, '-', ''), 1, 8),
+    COALESCE(new.raw_user_meta_data->>'full_name', 'Writer'),
     COALESCE(new.raw_user_meta_data->>'avatar_url', null)
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$;
+
 
 -- ============================================================
 -- 18. TRIGGERS
@@ -549,15 +592,20 @@ DO $$ BEGIN CREATE POLICY "Users can view their own reports"
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- admin_users
-DO $$ BEGIN CREATE POLICY "Admin users are viewable by authenticated users"
+DO $$ BEGIN CREATE POLICY "Admin users are viewable by everyone"
   ON public.admin_users FOR SELECT USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN CREATE POLICY "Admins can manage admin users"
-  ON public.admin_users FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
-  );
+DO $$ BEGIN CREATE POLICY "Admins can insert admin users"
+  ON public.admin_users FOR INSERT WITH CHECK (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE POLICY "Admins can update admin users"
+  ON public.admin_users FOR UPDATE USING (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE POLICY "Admins can delete admin users"
+  ON public.admin_users FOR DELETE USING (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- featured_content
@@ -567,22 +615,17 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN CREATE POLICY "Admins can manage featured content"
   ON public.featured_content FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
-  );
+  USING (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- admin_activity_log
 DO $$ BEGIN CREATE POLICY "Admin activity log is viewable by admins"
   ON public.admin_activity_log FOR SELECT
-  USING (
-    EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
-  );
+  USING (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN CREATE POLICY "Admins can insert activity log entries"
   ON public.admin_activity_log FOR INSERT
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
-  );
+  WITH CHECK (public.is_admin() OR auth.uid() IS NULL);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
