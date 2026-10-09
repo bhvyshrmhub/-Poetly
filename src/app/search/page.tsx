@@ -80,7 +80,11 @@ function SearchContent() {
           setWriters((data as Profile[]) || []);
         } else if (activeTab === "tags") {
           // Search poems by tag or mood
-          const cleanTag = q.replace(/^#/, "").toLowerCase();
+          const cleanTag = q.replace(/^#/, "").trim().toLowerCase().replace(/[^a-zA-Z0-9_\-]/g, "");
+          if (!cleanTag) {
+            setPoems([]);
+            return;
+          }
           const { data } = await supabase
             .from("poems")
             .select("*, profiles!inner(*)")

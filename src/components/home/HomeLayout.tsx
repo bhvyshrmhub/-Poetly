@@ -108,8 +108,33 @@ export default function HomeLayout() {
           if (fetchError) throw fetchError;
           setPoems((data as PoemWithAuthor[]) || []);
         }
+      } else if (activeTab === "new-voices") {
+        // "new-voices": poems written by the newest active community writers
+        const { data: newWriters } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        const writerIds = newWriters?.map((w) => w.id) || [];
+        if (writerIds.length > 0) {
+          const { data, error: fetchError } = await supabase
+            .from("poems")
+            .select("*, profiles!inner(*)")
+            .in("author_id", writerIds)
+            .eq("status", "published")
+            .eq("visibility", "public")
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+          if (fetchError) throw fetchError;
+          setPoems((data as PoemWithAuthor[]) || []);
+        } else {
+          setPoems([]);
+        }
       } else {
-        // "for-you" and "new-voices"
+        // "for-you": algorithmic community discovery
         const { data, error: fetchError } = await supabase
           .from("poems")
           .select("*, profiles!inner(*)")
