@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/home";
+  const rawNext = searchParams.get("next") ?? "/home";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/home";
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
         .from("profiles")
         .select("id, bio, website, location")
         .eq("id", data.session.user.id)
-        .single();
+        .maybeSingle();
 
       // Check if user was just created within the last 2 minutes and hasn't customized profile
       const createdAt = new Date(data.session.user.created_at || "").getTime();
@@ -56,8 +57,8 @@ export async function GET(request: NextRequest) {
       const redirectUrl = new URL(needsSetup ? "/profile/setup" : next, origin);
 
       const response = NextResponse.redirect(redirectUrl);
-      supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
-        response.cookies.set(name, value);
+      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+        response.cookies.set(name, value, options);
       });
 
       return response;
