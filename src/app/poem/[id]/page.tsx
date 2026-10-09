@@ -95,9 +95,11 @@ export default function PoemPage() {
 
     try {
       if (previousLiked) {
-        await supabase.from("likes").delete().eq("poem_id", id).eq("user_id", user.id);
+        const { error } = await supabase.from("likes").delete().eq("poem_id", id).eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
+        const { error } = await supabase.from("likes").insert({ user_id: user.id, poem_id: id });
+        if (error) throw error;
 
         if (poem && user.id !== poem.author_id) {
           await supabase.from("notifications").insert({
@@ -185,15 +187,31 @@ export default function PoemPage() {
 
     try {
       if (previousSaved) {
-        await supabase.from("saves").delete().eq("poem_id", id).eq("user_id", user.id);
+        const { error } = await supabase.from("saves").delete().eq("poem_id", id).eq("user_id", user.id);
+        if (error) throw error;
         setToast("Poem unsaved");
       } else {
-        await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
+        const { error } = await supabase.from("saves").insert({ user_id: user.id, poem_id: id });
+        if (error) throw error;
         setToast("Poem saved to your library");
       }
     } catch {
       setIsSaved(previousSaved);
       setToast("Failed to save poem");
+    }
+  };
+
+  const handleDeletePoem = async () => {
+    if (!poem || !user || user.id !== poem.author_id) return;
+    if (!window.confirm("Are you sure you want to delete this poem? This cannot be undone.")) return;
+
+    try {
+      const { error } = await supabase.from("poems").delete().eq("id", id);
+      if (error) throw error;
+      setToast("Poem deleted");
+      router.push("/home");
+    } catch {
+      setToast("Failed to delete poem");
     }
   };
 
@@ -203,12 +221,13 @@ export default function PoemPage() {
       return;
     }
     try {
-      await supabase.from("reports").insert({
+      const { error } = await supabase.from("reports").insert({
         reporter_id: user.id,
         target_type: "poem",
         target_id: id,
         reason: "Inappropriate or abusive content",
       });
+      if (error) throw error;
       setToast("Thank you. Report received for review.");
     } catch {
       setToast("Failed to submit report");
@@ -357,6 +376,24 @@ export default function PoemPage() {
             >
               <Flag size={13} />
             </button>
+            {user?.id === poem.author_id && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/poem/${id}/edit`}
+                  className="flex items-center gap-1 text-xs text-text-tertiary hover:text-brand transition-colors px-2.5 py-1 rounded-full border border-border-subtle hover:border-brand/30"
+                  title="Edit poem"
+                >
+                  <Edit2 size={12} strokeWidth={1.5} /> Edit
+                </Link>
+                <button
+                  onClick={handleDeletePoem}
+                  className="flex items-center gap-1 text-xs text-text-tertiary hover:text-error transition-colors px-2.5 py-1 rounded-full border border-border-subtle hover:border-error/30"
+                  title="Delete poem"
+                >
+                  <Trash2 size={12} strokeWidth={1.5} /> Delete
+                </button>
+              </div>
+            )}
             {responseCount > 0 && (
               <Link
                 href={`/poem/${id}/responses`}

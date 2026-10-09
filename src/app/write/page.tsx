@@ -58,6 +58,7 @@ function WritePageInner() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [tags, setTags] = useState("");
   const [showCanvas, setShowCanvas] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const { user } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,6 +67,18 @@ function WritePageInner() {
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
   const charCount = content.length;
+
+  // Protect against accidental navigation with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (autoSaveStatus === "unsaved" || (content.trim() && autoSaveStatus !== "saved")) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [autoSaveStatus, content]);
 
   // Load prompt information if responding to a prompt
   useEffect(() => {
@@ -268,6 +281,16 @@ function WritePageInner() {
               <span className="hidden sm:inline">{saving ? "Saving..." : "Save Draft"}</span>
             </button>
             <button
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-full border ${
+                showPreview
+                  ? "border-brand text-brand bg-brand-subtle"
+                  : "border-border-subtle text-text-tertiary hover:text-text-primary hover:border-border-default"
+              }`}
+            >
+              <Eye size={12} strokeWidth={1.5} /> {showPreview ? "Edit" : "Preview"}
+            </button>
+            <button
               onClick={() => setShowCanvas(!showCanvas)}
               className={`flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-full border hidden md:flex ${
                 showCanvas
@@ -282,7 +305,7 @@ function WritePageInner() {
               disabled={publishing || !content.trim()}
               className="flex items-center gap-1.5 text-xs font-medium text-white gradient-brand hover:opacity-90 px-4 py-1.5 rounded-full transition-opacity disabled:opacity-50"
             >
-              <Eye size={12} strokeWidth={1.5} /> {publishing ? "Publishing..." : "Publish"}
+              {publishing ? "Publishing..." : "Publish"}
             </button>
           </div>
         </div>
@@ -299,26 +322,48 @@ function WritePageInner() {
                 </Link>
               </div>
             )}
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              className="w-full bg-transparent font-poem-title text-2xl md:text-3xl text-text-primary placeholder:text-text-disabled outline-none mb-6"
-            />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing..."
-              className={`w-full bg-transparent text-lg text-text-primary placeholder:text-text-disabled outline-none resize-none min-h-[50vh] leading-relaxed ${
-                selectedTypography === "serif"
-                  ? "font-poem"
-                  : selectedTypography === "editorial"
-                  ? "font-editorial"
-                  : "font-sans"
-              }`}
-              style={{ textAlign: selectedAlignment as "left" | "center" | "right" }}
-            />
+
+            {showPreview ? (
+              <div className="py-6 animate-fade-in border-b border-border-subtle pb-8 mb-6">
+                <div className="text-[10px] uppercase tracking-widest text-text-tertiary mb-3">Live Preview</div>
+                <h1 className="font-poem-title text-3xl md:text-[2.75rem] text-text-primary mb-8">{title || "Untitled"}</h1>
+                <div
+                  className={`text-lg text-text-primary leading-relaxed whitespace-pre-line ${
+                    selectedTypography === "serif"
+                      ? "font-poem"
+                      : selectedTypography === "editorial"
+                      ? "font-editorial"
+                      : "font-sans"
+                  }`}
+                  style={{ textAlign: selectedAlignment as "left" | "center" | "right" }}
+                >
+                  {content || "Your poem will appear here..."}
+                </div>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Title"
+                  className="w-full bg-transparent font-poem-title text-2xl md:text-3xl text-text-primary placeholder:text-text-disabled outline-none mb-6"
+                />
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Start writing..."
+                  className={`w-full bg-transparent text-lg text-text-primary placeholder:text-text-disabled outline-none resize-none min-h-[50vh] leading-relaxed ${
+                    selectedTypography === "serif"
+                      ? "font-poem"
+                      : selectedTypography === "editorial"
+                      ? "font-editorial"
+                      : "font-sans"
+                  }`}
+                  style={{ textAlign: selectedAlignment as "left" | "center" | "right" }}
+                />
+              </>
+            )}
 
             <div className="flex items-center justify-between text-xs text-text-tertiary pt-4 border-t border-border-subtle">
               <div className="flex items-center gap-4">

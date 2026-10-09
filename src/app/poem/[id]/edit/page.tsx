@@ -38,7 +38,7 @@ export default function EditPoemPage() {
   const poemId = params.id as string;
 
   const [poem, setPoem] = useState<Poem | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTypography, setSelectedTypography] = useState("serif");
@@ -51,7 +51,13 @@ export default function EditPoemPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!poemId) return;
+    if (!poemId || authLoading) return;
+
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/poem/${poemId}/edit`)}`);
+      return;
+    }
+
     (async () => {
       try {
         const { data, error } = await supabase
@@ -59,16 +65,19 @@ export default function EditPoemPage() {
           .select("*")
           .eq("id", poemId)
           .single();
+
         if (error || !data) {
           setToast("Poem not found");
           router.push("/home");
           return;
         }
-        if (user && user.id !== data.author_id) {
+
+        if (user.id !== data.author_id) {
           setToast("You can only edit your own poems");
           router.push(`/poem/${poemId}`);
           return;
         }
+
         setPoem(data);
         setTitle(data.title || "");
         setContent(data.content);
@@ -80,7 +89,7 @@ export default function EditPoemPage() {
         setLoading(false);
       }
     })();
-  }, [poemId, router, user]);
+  }, [poemId, router, user, authLoading]);
 
   const handleSave = async () => {
     if (!poem || !content.trim()) {
@@ -97,11 +106,15 @@ export default function EditPoemPage() {
           content,
           mood: selectedMood,
           tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", poem.id);
 
+      if (error) throw error;
+
       setSaving(false);
-      setToast(error ? "Failed to save" : "Saved");
+      setToast("Saved");
+      router.push(`/poem/${poem.id}`);
     } catch {
       setSaving(false);
       setToast("Failed to save");
@@ -113,11 +126,8 @@ export default function EditPoemPage() {
 
     try {
       const { error } = await supabase.from("poems").delete().eq("id", poem.id);
-      if (!error) {
-        router.push("/home");
-      } else {
-        setToast("Failed to delete");
-      }
+      if (error) throw error;
+      router.push("/home");
     } catch {
       setToast("Failed to delete");
     }
