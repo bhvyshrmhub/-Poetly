@@ -195,11 +195,14 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Items must be an array" }, { status: 400 });
         }
 
-        await Promise.all(
-          items.map((item) =>
-            supabase.from("featured_content").update({ position: item.position }).eq("id", item.id)
-          )
-        );
+        const updatePromises = items.map(async (item) => {
+          const { error } = await supabase
+            .from("featured_content")
+            .update({ position: item.position })
+            .eq("id", item.id);
+          if (error) throw error;
+        });
+        await Promise.all(updatePromises);
 
         return NextResponse.json({ success: true });
       }

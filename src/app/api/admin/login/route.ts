@@ -69,13 +69,22 @@ function checkRateLimit(ip: string): boolean {
 async function verifyPassword(password: string): Promise<boolean> {
   if (!ADMIN_PASSWORD_HASH || !ADMIN_PASSWORD_SALT) return false;
 
-  const salt = hexToBytes(ADMIN_PASSWORD_SALT);
-  const hash = await deriveKey(password, salt);
-  const hashHex = Array.from(hash)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  try {
+    const salt = hexToBytes(ADMIN_PASSWORD_SALT);
+    const hash = await deriveKey(password, salt);
+    const expectedHash = hexToBytes(ADMIN_PASSWORD_HASH);
 
-  return hashHex === ADMIN_PASSWORD_HASH;
+    if (hash.length !== expectedHash.length) return false;
+
+    // Constant-time timing-safe comparison to prevent timing attacks
+    let diff = 0;
+    for (let i = 0; i < hash.length; i++) {
+      diff |= hash[i] ^ expectedHash[i];
+    }
+    return diff === 0;
+  } catch {
+    return false;
+  }
 }
 
 async function createSessionToken(username: string): Promise<string> {
