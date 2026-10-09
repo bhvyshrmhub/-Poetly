@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 import { WriterWithStats } from "@/lib/types";
 import WriterCard from "@/components/WriterCard";
 import AppShell from "@/components/layout/AppShell";
 import PageHeader from "@/components/layout/PageHeader";
 
 export default function WritersPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [writers, setWriters] = useState<WriterWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,6 +22,7 @@ export default function WritersPage() {
       let query = supabase
         .from("profiles")
         .select("*")
+        .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(30);
 
@@ -28,6 +33,17 @@ export default function WritersPage() {
       const { data: profiles } = await query;
 
       if (profiles) {
+        let followingSet = new Set<string>();
+        if (user) {
+          const { data: userFollows } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", user.id);
+          if (userFollows) {
+            followingSet = new Set(userFollows.map((f) => f.following_id));
+          }
+        }
+
         const writersWithStats: WriterWithStats[] = await Promise.all(
           profiles.map(async (p) => {
             const [{ count: followers }, { count: following }, { count: poems }] = await Promise.all([
@@ -35,7 +51,13 @@ export default function WritersPage() {
               supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id),
               supabase.from("poems").select("*", { count: "exact", head: true }).eq("author_id", p.id).eq("status", "published"),
             ]);
-            return { ...p, followerCount: followers || 0, followingCount: following || 0, poemCount: poems || 0, isFollowed: false };
+            return {
+              ...p,
+              followerCount: followers || 0,
+              followingCount: following || 0,
+              poemCount: poems || 0,
+              isFollowed: followingSet.has(p.id),
+            };
           })
         );
         setWriters(writersWithStats);
@@ -45,7 +67,61 @@ export default function WritersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, user]);
+
+  const handleToggleFollow = async (writerId: string, currentlyFollowed: boolean) => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    setWriters((prev) =>
+      prev.map((w) =>
+        w.id === writerId
+          ? {
+              ...w,
+              isFollowed: !currentlyFollowed,
+              followerCount: currentlyFollowed ? Math.max(0, w.followerCount - 1) : w.followerCount + 1,
+            }
+          : w
+      )
+    );
+
+    try {
+      if (currentlyFollowed) {
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", writerId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("follows")
+          .insert({ follower_id: user.id, following_id: writerId });
+        if (error) throw error;
+
+        await supabase.from("notifications").insert({
+          recipient_id: writerId,
+          actor_id: user.id,
+          type: "follow",
+        });
+      }
+    } catch {
+      // Revert on error
+      setWriters((prev) =>
+        prev.map((w) =>
+          w.id === writerId
+            ? {
+                ...w,
+                isFollowed: currentlyFollowed,
+                followerCount: currentlyFollowed ? w.followerCount + 1 : Math.max(0, w.followerCount - 1),
+              }
+            : w
+        )
+      );
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(fetchWriters, 300);
@@ -80,7 +156,13 @@ export default function WritersPage() {
           ) : writers.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {writers.map((writer) => (
-                <WriterCard key={writer.id} writer={writer} />
+                <WriterCard
+                  key={writer.id}
+                  writer={writer}
+                  showFollow={Boolean(user && user.id !== writer.id)}
+                  isFollowed={writer.isFollowed}
+                  onFollowToggle={() => handleToggleFollow(writer.id, writer.isFollowed)}
+                />
               ))}
             </div>
           ) : (

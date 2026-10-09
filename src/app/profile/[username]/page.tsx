@@ -56,7 +56,7 @@ export default function ProfileByUsernamePage() {
           .select("id")
           .eq("follower_id", user.id)
           .eq("following_id", p.id)
-          .single();
+          .maybeSingle();
         setIsFollowing(!!followData);
       }
     } catch {
@@ -68,7 +68,7 @@ export default function ProfileByUsernamePage() {
 
   useEffect(() => {
     if (username) {
-      supabase.from("profiles").select("*").eq("username", username).single().then(({ data, error }) => {
+      supabase.from("profiles").select("*").eq("username", username).maybeSingle().then(({ data, error }) => {
         if (data) {
           loadProfile(data as Profile);
         } else if (error) {
@@ -85,25 +85,45 @@ export default function ProfileByUsernamePage() {
       router.push("/login");
       return;
     }
-    if (!profile) return;
+    if (!profile || user.id === profile.id) return;
 
-    if (isFollowing) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", profile.id);
-      setFollowerCount(Math.max(0, followerCount - 1));
+    const previousFollow = isFollowing;
+    const previousCount = followerCount;
+
+    if (previousFollow) {
+      setFollowerCount(Math.max(0, previousCount - 1));
       setIsFollowing(false);
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
-      setFollowerCount(followerCount + 1);
+      setFollowerCount(previousCount + 1);
       setIsFollowing(true);
+    }
 
-      // Create notification
-      if (user.id !== profile.id) {
+    try {
+      if (previousFollow) {
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("follows")
+          .insert({ follower_id: user.id, following_id: profile.id });
+        if (error) throw error;
+
+        // Create notification
         await supabase.from("notifications").insert({
           recipient_id: profile.id,
           actor_id: user.id,
           type: "follow",
         });
       }
+    } catch {
+      // Revert on error
+      setIsFollowing(previousFollow);
+      setFollowerCount(previousCount);
+      setToast("Failed to update follow");
     }
   };
 

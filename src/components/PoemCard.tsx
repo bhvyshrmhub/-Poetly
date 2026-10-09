@@ -109,15 +109,17 @@ export default function PoemCard({
 
     try {
       if (previousLiked) {
-        await supabase
+        const { error } = await supabase
           .from("likes")
           .delete()
           .eq("poem_id", poem.id)
           .eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from("likes")
           .insert({ poem_id: poem.id, user_id: user.id });
+        if (error) throw error;
 
         if (user.id !== poem.author_id) {
           await supabase.from("notifications").insert({
@@ -148,15 +150,17 @@ export default function PoemCard({
 
     try {
       if (previousSaved) {
-        await supabase
+        const { error } = await supabase
           .from("saves")
           .delete()
           .eq("poem_id", poem.id)
           .eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from("saves")
           .insert({ poem_id: poem.id, user_id: user.id });
+        if (error) throw error;
       }
     } catch {
       setIsSaved(previousSaved);

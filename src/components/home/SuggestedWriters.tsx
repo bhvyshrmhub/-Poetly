@@ -78,15 +78,17 @@ export default function SuggestedWriters() {
 
     try {
       if (currentlyFollowed) {
-        await supabase
+        const { error } = await supabase
           .from("follows")
           .delete()
           .eq("follower_id", user.id)
           .eq("following_id", writerId);
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from("follows")
           .insert({ follower_id: user.id, following_id: writerId });
+        if (error) throw error;
 
         await supabase.from("notifications").insert({
           recipient_id: writerId,
